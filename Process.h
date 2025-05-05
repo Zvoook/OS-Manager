@@ -4,15 +4,21 @@
 using namespace std;
 class Process {
 private:
-    string name_proc;
-    vector<int> max_res_in_proc;
-    vector<int> allocated_res_for_proc;
+    int proc_id;
+    string proc_name;
+    bool done;            
+    vector<int> max_require; 
+    vector<int> alloc; 
+
 public:
-    Process(const string& name, const vector<int>& max) : name_proc(name), max_res_in_proc(max), allocated_res_for_proc(max.size(), 0) {};
-    string get_name_proc() const { return name_proc; };
-    const vector<int>& get_max_proc() const { return max_res_in_proc; };
-    const vector<int>& get_allocated_proc() const { return allocated_res_for_proc; };
+    Process(int id, const string& name, const vector<int>& r) : proc_id(id), proc_name(name), max_require(r), done(false) {alloc.resize(max_require.size(), 0);}
+    int get_proc_id() const { return proc_id; }
+    string get_proc_name() const { return proc_name; }
+    bool is_done() const { return done; }
+    const vector<int>& get_max_require() const { return max_require; }
+    const vector<int>& get_alloc() const { return alloc; }
     vector<int> get_rest() const;
-    void allocate_res(int ind, int k);
-    void reset();
+    void set_done(bool status) { done = status; };
+    void set_alloc(const vector<int>& res);
+    void add_res(int res_id, int amount);
 };
