@@ -3,14 +3,17 @@
 using namespace std;
 class Resource {
 private:
-    string name_res;
-    int total_res;
-    int available_res;
+    int res_id;
+    string res_name;
+    int res_available;
+    int res_total;
 public:
-    Resource(const string& name, int n) : name_res(name), total_res(n), available_res(n) {}
-    string get_name_res() const { return name_res; };
-    int get_total() const { return total_res; };
-    int get_available() const { return available_res; };
-    void set_available(int value) {if (value >= 0 && value <= total_res) available_res = value;}
-    void reset() { available_res = total_res; };
+    Resource(int id, const string& name, int n): res_id(id), res_name(name), res_total(n), res_available(n) {}
+    int get_res_id() const { return res_id; }
+    string get_res_name() const { return res_name; }
+    int get_res_available() const { return res_available; }
+    int get_res_total() const { return res_total; }
+    void set_res_available(int k) {if (k >= 0 && k <= res_total) res_available = k;}
+    bool take(int k);
+    void back(int k);
 };
