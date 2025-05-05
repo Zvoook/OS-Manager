@@ -1,17 +1,34 @@
 #include "Process.h"
 vector<int> Process::get_rest() const {
-    vector<int> rest(max_res_in_proc.size());
-    for (size_t i = 0; i < max_res_in_proc.size(); ++i) {
-        rest[i] = max_res_in_proc[i] - allocated_res_for_proc[i];
+    vector<int> d;
+    for (int i = 0; i < max_require.size(); ++i) {
+        d.push_back(max_require[i] - alloc[i]);
     }
-    return rest;
+    return d;
 }
 
-void Process::allocate_res(int ind, int k) {
-    if (ind >= 0 && ind < static_cast<int>(allocated_res_for_proc.size())) {
-        allocated_res_for_proc[ind] += k;
+void Process::set_alloc(const vector<int>& res) {
+    if (res.size() == alloc.size()) {
+        alloc = res;
+        done = true;
+        for (int i = 0; i < max_require.size(); ++i) {
+            if (alloc[i] < max_require[i]) {
+                done = false;
+                break;
+            }
+        }
     }
 }
-void Process::reset() {
-    allocated_res_for_proc.assign(allocated_res_for_proc.size(), 0);
+
+void Process::add_res(int res_id, int amount) {
+    if (res_id >= 0 && res_id < alloc.size()) {
+        alloc[res_id] += amount;
+        done = true;
+        for (int i = 0; i < max_require.size(); ++i) {
+            if (alloc[i] < max_require[i]) {
+                done = false;
+                break;
+            }
+        }
+    }
 }
