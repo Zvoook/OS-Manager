@@ -1,23 +1,20 @@
 #include "GameState.h"
-void GameState::initLevel1() {
-    resources = {
-        Resource("Resource 1", 6),
-        Resource("Resource 2", 3)
-    };
-    processes = {
-        Process("Process 1", {5, 2}),
-        Process("Process 2", {2, 3}),
-        Process("Process 3", {6, 3}),
-        Process("Process 4", {1, 1})
-    };
+#include <random>
+#include <ctime>
+#include <algorithm>
+void GameState::init_level(int lvl) {
+    processes.clear();
+    resources.clear();
+    table.clear();
+    available.clear();
+    level = lvl;
+    design_level();
 }
-void GameState::reset_res() {
-    for (auto& res : resources) {
-        res.reset();
+bool GameState::is_lvl_passed() const {
+    for (int i = 0; i < processes.size(); ++i) {
+        if (!processes[i].is_done()) {
+            return false;
+        }
     }
-}
-void GameState::reset_proc() {
-    for (auto& proc : processes) {
-        proc.reset();
-    }
+    return true;
 }
