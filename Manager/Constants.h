@@ -1,3 +1,3 @@
 #pragma once
-const int weidth = 1000;
-const int hight = 800;
+const int width = 1920;
+const int height = 1070;

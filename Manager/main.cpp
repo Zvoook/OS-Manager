@@ -1,10 +1,12 @@
 ﻿#include <SFML/Graphics.hpp>
 #include "GameState.h"
+#include "Design.h"
 #include <iostream>
 using namespace sf;
+
 int main() {
     GameState game;
-    RenderWindow window(VideoMode(800, 600), "Resource Manager", Style::Close);
+    RenderWindow window(VideoMode(width, height), "Resource Manager", Style::Close);
     Font font;
     if (!font.loadFromFile("arial.ttf")) {
         cerr << "Font load error!\n";
@@ -18,7 +20,7 @@ int main() {
             }
         }
 
-        window.clear(Color(30, 30, 30));
+        window.clear(Color::Blue);
         Text title("Resource Status", font, 24);
         title.setPosition(20, 10);
         title.setFillColor(Color::White);
@@ -31,7 +33,7 @@ int main() {
             text.setFont(font);
             text.setCharacterSize(20);
             text.setFillColor(Color::Cyan);
-            text.setString(res.get_res_name() + ": " + to_string(res.get_available()) + "/" + to_string(res.get_total()));
+            text.setString(res.get_name() + ": " + to_string(res.get_available()) + "/" + to_string(res.get_total()));
             text.setPosition(20, res_offset + i * res_step);
             window.draw(text);
         }
@@ -42,19 +44,18 @@ int main() {
 
         int proc_offset = 160;
         int proc_step = 25;
-        for (size_t i = 0; i < game.get_vec_proc().size(); ++i) {
-            const auto& proc = game.get_vec_proc()[i];
+        for (size_t i = 0; i < game.get_vec_pr().size(); ++i) {
+            const auto& proc = game.get_vec_pr()[i];
             Text text;
             text.setFont(font);
             text.setCharacterSize(18);
             text.setFillColor(Color::Green);
-            string line = proc.get_name_proc() + "  ";
-            for (int require : proc.get_max_proc()) line += "(" + to_string(require) + ") ";
+            string line = proc.get_name() + "  ";
+            for (int require : proc.get_max_require()) line += "(" + to_string(require) + ") ";
             text.setString(line);
             text.setPosition(20, proc_offset + i * proc_step);
             window.draw(text);
         }
-
         window.display();
     }
 

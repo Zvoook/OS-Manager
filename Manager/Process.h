@@ -7,13 +7,11 @@ private:
     int proc_id;
     string proc_name;
     bool done;
-    vector<int> max_require;
-    vector<int> alloc;
-
+    vector<int> max_require, alloc;
 public:
     Process(int id, const string& name, const vector<int>& r) : proc_id(id), proc_name(name), max_require(r), done(false) { alloc.resize(max_require.size(), 0); }
-    int get_proc_id() const { return proc_id; }
-    string get_proc_name() const { return proc_name; }
+    int get_id() const { return proc_id; }
+    string get_name() const { return proc_name; }
     bool is_done() const { return done; }
     const vector<int>& get_max_require() const { return max_require; }
     const vector<int>& get_alloc() const { return alloc; }
