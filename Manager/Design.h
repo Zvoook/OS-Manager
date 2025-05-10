@@ -51,6 +51,7 @@ public:
 
     float getBottom() const { return pos.y + size.y; }
     float getRight() const { return pos.x + size.x; }
+    bool get_hovered() const { return isHovered; }
 };
 
 class LevelDesign {
@@ -63,5 +64,6 @@ public:
     void draw(RenderWindow& w);
     void reconstruct(int level);
     void setFrameColor(const string& name, const sf::Color& color);
+    void interactive(const Vector2f& mousePos);
     RectangleShape& get_background() { return background; }
 };

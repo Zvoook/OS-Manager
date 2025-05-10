@@ -14,7 +14,14 @@ int main() {
     while (window.isOpen()) {
         Event event;
         while (window.pollEvent(event)) {
-            if (event.type == Event::Closed || (event.type=Event::KeyPressed) && (event.type == Keyboard::Escape)) window.close();
+            if (event.type == Event::Closed ||
+                (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape)) {
+                window.close();
+            }
+            else if (event.type == Event::MouseMoved) {
+                Vector2f mousePos(static_cast<float>(event.mouseMove.x), static_cast<float>(event.mouseMove.y));
+                ui.interactive(mousePos);
+            }
         }
 
         window.clear(Color::Blue);
@@ -29,6 +36,7 @@ int main() {
         info.setFillColor(Color(200, 200, 200));
         info.setPosition(70, 70);
         window.draw(info);
+
         /*Text title("Resource Status", font, 24);
         title.setPosition(20, 10);
         title.setFillColor(Color::White);

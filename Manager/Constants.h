@@ -27,3 +27,11 @@ const float FRAME_WIDTH_PROC = 900.f;
 const float FRAME_HEIGHT_PROC = 280.f;
 const float FRAME_X_PROC = 60.f;
 const float FRAME_Y_PROC = 420.f;
+
+// Смещение текста во фреймах (заголовках)
+const float FRAME_TEXT_OFFSET_X = 140.f;
+const float FRAME_TEXT_OFFSET_Y = -1.f;
+
+// Смещение текста в кнопках
+const float BUTTON_TEXT_OFFSET_X = 130.f;
+const float BUTTON_TEXT_OFFSET_Y = 13.f;
