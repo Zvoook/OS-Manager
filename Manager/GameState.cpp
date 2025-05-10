@@ -10,9 +10,7 @@ void GameState::init_level(int lvl) {
 }
 bool GameState::is_lvl_passed() const {
     for (int i = 0; i < processes.size(); ++i) {
-        if (!processes[i].is_done()) {
-            return false;
-        }
+        if (!processes[i].is_done()) return false;
     }
     return true;
 }
