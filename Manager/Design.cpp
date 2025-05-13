@@ -1,28 +1,28 @@
 #include "Design.h"
 #include "Constants.h"
 
-Frame::Frame(const Font& font, const String& title, float s)
+Frame::Frame(const Font& font, const String& tite, float s)
 {
-    back.setFillColor(white);
-    border.setFillColor(sf::Color::Transparent);
-    border.setOutlineThickness(2.0f);
-    border.setOutlineColor(blue);
+    //black.setFillColor(bordo);
+    border.setFillColor(white);
+    border.setOutlineThickness(2.f);
+    border.setOutlineColor(black);
     text.setFont(font);
-    text.setString(title);
+    text.setString(tite);
     text.setCharacterSize(s);
-    text.setFillColor(blue);
+    text.setFillColor(black);
 }
 
-Button::Button(const Font& font, const String& title, float s) : isHovered(false), isActive(false)
+Button::Button(const Font& font, const String& tite, float s) : isHovered(false), isActive(false)
 {
-    back.setFillColor(gray_blue);
-    border.setFillColor(sf::Color::Transparent);
-    border.setOutlineThickness(2.0f);
-    border.setOutlineColor(sf::Color(100, 200, 220));
+    //black.setFillColor(white);
+    border.setFillColor(white);
+    border.setOutlineThickness(2.f);
+    border.setOutlineColor(black);
     text.setFont(font);
-    text.setString(title);
+    text.setString(tite);
     text.setCharacterSize(s);
-    text.setFillColor(sf::Color(100, 200, 220));
+    text.setFillColor(black);
 }
 
 void Frame::draw(RenderTarget& target, RenderStates states) const {
@@ -42,26 +42,24 @@ void Frame::setPosition(const Vector2f& p) {
     back.setPosition(p);
     border.setPosition(p);
     FloatRect textBounds = text.getLocalBounds();
-    text.setPosition(pos.x + (size.x - textBounds.width) / 2 + FRAME_TEXT_OFFSET_X, pos.y + FRAME_TEXT_OFFSET_Y);
+    float x = pos.x + (size.x - textBounds.width) / 2 + FRAME_TEXT_OFFSET_X;
+    float y = pos.y + FRAME_TEXT_OFFSET_Y;
+    text.setPosition(x, y);
 }
 
 void Button::hover(bool x) {
     isHovered = x;
-    if (isHovered) { back.setFillColor(sf::Color(40, 80, 120)); }
-    else { back.setFillColor(sf::Color(20, 40, 60)); }
+    if (isHovered) {
+        border.setOutlineColor(pale_green);
+        text.setFillColor(pale_green);
+    }
+    else { 
+        border.setOutlineColor(black);
+        text.setFillColor(black);
+    }
 }
 
-void Button::activate(bool x) {
-    isActive = x;
-    if (isActive) {
-        border.setOutlineColor(sf::Color(150, 255, 150));
-        text.setFillColor(sf::Color(150, 255, 150));
-    }
-    else {
-        border.setOutlineColor(sf::Color(100, 200, 220));
-        text.setFillColor(sf::Color(100, 200, 220));
-    }
-}
+void Button::activate(bool x) { isActive = x; }
 
 void Button::draw(RenderTarget& target, RenderStates states) const {
     target.draw(back, states);
@@ -80,34 +78,36 @@ void Button::setPosition(const Vector2f& p) {
     back.setPosition(p);
     border.setPosition(p);
     FloatRect textBounds = text.getLocalBounds();
-    text.setPosition(pos.x + (size.x - textBounds.width) / 2 + BUTTON_TEXT_OFFSET_X, pos.y + BUTTON_TEXT_OFFSET_Y);
+    float x = pos.x + (size.x - textBounds.width) / 2 + FRAME_TEXT_OFFSET_X;
+    float y = pos.y + FRAME_TEXT_OFFSET_Y;
+    text.setPosition(x, y);
 }
 
 LevelDesign::LevelDesign(const Font& font) {
-    background.setFillColor(Color(10, 20, 30));
+    background.setFillColor(white);
     background.setSize(Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
 
-    main = Frame(font, L"Симуляция", 32);
+    main = Frame(font, "RESOURCE OPERATOR", 28);
     main.setPosition(Vector2f(MAIN_X, MAIN_Y));
     main.setSize(Vector2f(MAIN_WIDTH, MAIN_HEIGHT));
 
-    resources = Frame(font, L"Ресурсы", 26);
+    resources = Frame(font, "RESOURCES", 22);
     resources.setPosition(Vector2f(FRAME_X_RES, FRAME_Y_RES));
     resources.setSize(Vector2f(FRAME_WIDTH_RES, FRAME_HEIGHT_RES));
 
-    request = Frame(font, L"Запрос", 26);
+    request = Frame(font, "REQUEST", 22);
     request.setPosition(Vector2f(FRAME_X_REQ, FRAME_Y_REQ));
     request.setSize(Vector2f(FRAME_WIDTH_REQ, FRAME_HEIGHT_REQ));
 
-    processes = Frame(font, L"Процессы", 26);
+    processes = Frame(font, "PROCESSES", 22);
     processes.setPosition(Vector2f(FRAME_X_PROC, FRAME_Y_PROC));
     processes.setSize(Vector2f(FRAME_WIDTH_PROC, FRAME_HEIGHT_PROC));
 
-    allow = Button(font, L"Разрешить", 22);
+    allow = Button(font, "GRANT", 22);
     allow.setPosition(Vector2f(BUTTON_X_GRANT, BUTTON_Y));
     allow.setSize(Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT));
 
-    deny = Button(font, L"Отклонить", 22);
+    deny = Button(font, "DENY", 22);
     deny.setPosition(Vector2f(BUTTON_X_DENY, BUTTON_Y));
     deny.setSize(Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT));
 }
@@ -122,23 +122,36 @@ void LevelDesign::draw(RenderWindow& w) {
     deny.draw(w, RenderStates::Default);
 }
 
-void LevelDesign::setFrameColor(const string& name, const sf::Color& color) {
-    if (name == "main") main.setColor(color);
-    else if (name == "resources") resources.setColor(color);
-    else if (name == "request") request.setColor(color);
-    else if (name == "processes") processes.setColor(color);
-    else if (name == "allow") allow.setColor(color);
-    else if (name == "deny") deny.setColor(color);
+void LevelDesign::setFrameColor(const string& name, const sf::Color& Color) {
+    if (name == "main") main.setColor(Color);
+    else if (name == "resources") resources.setColor(Color);
+    else if (name == "request") request.setColor(Color);
+    else if (name == "processes") processes.setColor(Color);
+    else if (name == "allow") allow.setColor(Color);
+    else if (name == "deny") deny.setColor(Color);
 }
 
-void LevelDesign::interactive(const Vector2f& mousePos)
+int LevelDesign::interactive(const Vector2f& mousePos)
 {
     allow.hover(allow.contains(mousePos));
     allow.activate(allow.get_hovered());
+    if (allow.get_active()) return 1;
+
     deny.hover(deny.contains(mousePos));
     deny.activate(deny.get_hovered());
+    if (deny.get_active()) return -1;
+    return 0;
 }
 
-void LevelDesign::reconstruct(int level) {
-    setFrameColor("main", sf::Color(0, 0, 0));
+void LevelDesign::reconstruct(int v) {
+    if (!v) return;
+    if (v == 1) {
+        setFrameColor("main", sf::Color(0, 0, 0));
+    }
+    else if (v == 2) {
+
+    }
+    else if (v == 3) {
+
+    }
 }

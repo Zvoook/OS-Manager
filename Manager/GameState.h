@@ -15,9 +15,10 @@ private:
 public:
     GameState() : level(1), wins(0), losses(0) { init_level(level); }
     
-    void init_level(int lvl);
-    //void design_level();
+    void init_level(int v);
+    //void design_eve();
     bool make_request(int proc_id, int res_id, int k);
+    //tupe<int, int, int> get_request(int proc_id, int res_id, int k);
     bool deadlock_detect();
     bool is_lvl_passed() const;
 

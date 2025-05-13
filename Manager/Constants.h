@@ -35,3 +35,9 @@ const float FRAME_TEXT_OFFSET_Y = -1.f;
 // Смещение текста в кнопках
 const float BUTTON_TEXT_OFFSET_X = 130.f;
 const float BUTTON_TEXT_OFFSET_Y = 13.f;
+
+const int RES_OFFSET = 50;
+const int RES_STEP = 30;
+
+const int PROC_OFFSET = 160;
+const int PROC_STEP = 25;

@@ -1,8 +1,8 @@
 ﻿#include "GameState.h"
 #include <iostream>
 
-void GameState::init_level(int lvl) {
-    level = lvl;
+void GameState::init_level(int v) {
+    level = v;
     processes.clear();
     resources.clear();
     allocation.clear();
@@ -58,12 +58,18 @@ bool GameState::make_request(int proc_id, int res_id, int k) {
     }
 }
 
+//tupe<int, int, int> GameState::get_request(int proc_id, int res_id, int k)
+//{
+//    if (make_request(proc_id, res_id, k)) return tupe<int, int, int>(proc_id, res_id, k);
+//    return tupe<int, int, int>(-1, 0, 0);
+//}
+
 bool GameState::deadlock_detect() {
     int num_processes = processes.size();
     int num_resources = resources.size();
 
     vector<int> work = available;
-    vector<bool> finish(num_processes, false);
+    vector<bool> Fillnish(num_processes, false);
     vector<vector<int>> need(num_processes, vector<int>(num_resources));
     for (int i = 0; i < num_processes; ++i) {
         for (int j = 0; j < num_resources; ++j) {
@@ -75,26 +81,26 @@ bool GameState::deadlock_detect() {
     while (progress) {
         progress = false;
         for (int i = 0; i < num_processes; ++i) {
-            if (!finish[i]) {
-                bool can_finish = true;
+            if (!Fillnish[i]) {
+                bool can_Fillnish = true;
                 for (int j = 0; j < num_resources; ++j) {
                     if (need[i][j] > work[j]) {
-                        can_finish = false;
+                        can_Fillnish = false;
                         break;
                     }
                 }
-                if (can_finish) {
+                if (can_Fillnish) {
                     for (int j = 0; j < num_resources; ++j) {
                         work[j] += allocation[i][j];
                     }
-                    finish[i] = true;
+                    Fillnish[i] = true;
                     progress = true;
                 }
             }
         }
     }
 
-    for (bool f : finish) {
+    for (bool f : Fillnish) {
         if (!f) {
             return false;
         }
