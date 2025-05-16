@@ -1,4 +1,6 @@
 ﻿#include "GameState.h"
+#include <iostream>
+
 void GameState::init_level(int v) {
     level = v;
     processes.clear();
@@ -6,6 +8,7 @@ void GameState::init_level(int v) {
     allocation.clear();
     available.clear();
 }
+
 bool GameState::is_lvl_passed() const {
     for (int i = 0; i < processes.size(); ++i) {
         if (!processes[i].is_done()) return false;
@@ -13,54 +16,38 @@ bool GameState::is_lvl_passed() const {
     return true;
 }
 
-
-bool GameState::make_request(int proc_id, int res_id, int k) {
+string GameState::action_result(int proc_id, int res_id, int k) {
+    string mes;
     Process& proc = processes[proc_id];
     int need = proc.get_max_require()[res_id] - proc.get_alloc()[res_id];
 
-    if (k > need) {
-        //cerr << "������ ��������� ����������� ��������.\n";
-        return false;
-    }
-    if (k > available[res_id]) {
-        //cerr << "������������ ��������� ��������.\n";
-        return false;
-    }
+    if (k > need || k > available[res_id]) return NULL;
     available[res_id] -= k;
     allocation[proc_id][res_id] += k;
     proc.add_res(res_id, k);
     resources[res_id].take(k);
 
     if (deadlock_detect()) {
-        //cout << "������ ������";
+        mes += "Resource successful granted!";
         if (proc.is_done()) {
-            // ����������� ������� ��������
             for (int i = 0; i < resources.size(); ++i) {
                 int allocated = allocation[proc_id][i];
                 available[i] += allocated;
                 resources[i].back(allocated);
                 allocation[proc_id][i] = 0;
             }
-            //cout << "������� " << proc_id << " �������� � ��������� ���� �������.\n";
+            mes += "\n\nProcess completed!";
         }
-
-        return true;
     }
     else {
         available[res_id] += k;
         allocation[proc_id][res_id] -= k;
         proc.add_res(res_id, -k);
         resources[res_id].back(k);
-        //cerr << "������ ��������\n";
-        return false;
+        mes += "You face to deadlock!";
     }
+    return mes;
 }
-
-//tupe<int, int, int> GameState::get_request(int proc_id, int res_id, int k)
-//{
-//    if (make_request(proc_id, res_id, k)) return tupe<int, int, int>(proc_id, res_id, k);
-//    return tupe<int, int, int>(-1, 0, 0);
-//}
 
 bool GameState::deadlock_detect() {
     int num_processes = processes.size();
@@ -104,4 +91,28 @@ bool GameState::deadlock_detect() {
         }
     }
     return true;
+}
+
+tuple<int, int, int> GameState::create_random_request() {
+    for (int i = 0; i < processes.size(); ++i) {
+        if (!processes[i].is_done()) {
+            auto rest = processes[i].get_rest();
+            for (int j = 0; j < rest.size(); ++j) {
+                if (rest[j] > 0 && available[j] > 0) {
+                    int amount = min(1, min(rest[j], available[j]));
+                    return { i, j, amount };
+                }
+            }
+        }
+    }
+    return { -1, -1, -1 };
+}
+
+void GameState::set_manual(const vector<Resource>& res, const vector<Process>& proc, int count) {
+    for (int i = 0; i < count && i < res.size(); ++i) resources.push_back(res[i]);
+    for (int i = 0; i < count; ++i) processes.push_back(proc[i]);
+    int r = resources.size(), p = processes.size();
+    available.resize(r);
+    allocation.assign(p, vector<int>(r, 0));
+    for (int i = 0; i < r; ++i) available[i] = resources[i].get_available();
 }

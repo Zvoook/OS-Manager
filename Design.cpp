@@ -3,8 +3,7 @@
 
 Frame::Frame(const Font& font, const String& tite, float s)
 {
-    //black.setFillColor(bordo);
-    border.setFillColor(white);
+    border.setFillColor(yellow);
     border.setOutlineThickness(2.f);
     border.setOutlineColor(black);
     text.setFont(font);
@@ -31,7 +30,7 @@ void Frame::setPosition(const Vector2f& p) {
 Button::Button(const Font& font, const String& tite, float s) : isHovered(false), isActive(false)
 {
     //black.setFillColor(white);
-    border.setFillColor(white);
+    border.setFillColor(yellow);
     border.setOutlineThickness(2.f);
     border.setOutlineColor(black);
     text.setFont(font);
@@ -39,14 +38,20 @@ Button::Button(const Font& font, const String& tite, float s) : isHovered(false)
     text.setCharacterSize(s);
     text.setFillColor(black);
 }
-void Button::hover(bool x) {
+void Button::hover(bool x, bool t) {
     isHovered = x;
     if (isHovered) {
-        border.setOutlineColor(pale_green);
-        text.setFillColor(pale_green);
+        if (t) {
+            border.setFillColor(darkGreen);
+            text.setFillColor(white);
+        }
+        else {
+            border.setFillColor(darkRed);
+            text.setFillColor(white);
+        }
     }
     else {
-        border.setOutlineColor(black);
+        border.setFillColor(yellow);
         text.setFillColor(black);
     }
 }
@@ -112,37 +117,43 @@ void LevelDesign::draw(RenderWindow& w) {
     deny.draw(w, RenderStates::Default);
 }
 
-void LevelDesign::setFrameColor(const string& name, const sf::Color& Color) {
-    if (name == "main") main.setColor(Color);
-    else if (name == "resources") resources.setColor(Color);
-    else if (name == "request") request.setColor(Color);
-    else if (name == "processes") processes.setColor(Color);
-    else if (name == "grant") grant.setColor(Color);
-    else if (name == "deny") deny.setColor(Color);
+void LevelDesign::setElemColor(const string& name, const sf::Color& Col1, const sf::Color& Col2) {
+    if (name == "main") main.setColor(Col1, Col2);
+    else if (name == "frames") {
+        resources.setColor(Col1, Col2);
+        request.setColor(Col1, Col2);
+        processes.setColor(Col1, Col2);
+    }
+    else if (name == "back") background.setFillColor(Col1);
 }
 
-int LevelDesign::interactive(const Vector2f& mousePos)
+int LevelDesign::interactive(const Vector2f& mousePos, bool cl)
 {
-    grant.hover(grant.contains(mousePos));
-    grant.activate(grant.get_hovered());
-    if (grant.get_active()) return 1;
+    grant.hover(grant.contains(mousePos), 1);
+    if (cl) grant.activate(grant.get_hovered());
 
 
-    deny.hover(deny.contains(mousePos));
-    deny.activate(deny.get_hovered());
-    if (deny.get_active()) return -1;
-    return 0;
+    deny.hover(deny.contains(mousePos), 0);
+    if (cl) deny.activate(deny.get_hovered());
+
+    return grant.get_hovered() - deny.get_hovered();
 }
 
 void LevelDesign::reconstruct(int l) {
-    if (!l) return;
     if (l == 1) {
-        setFrameColor("main", sf::Color(0, 0, 0));
+        setElemColor("back", lightBlue, black);
+        setElemColor("main", blue, black);
     }
     else if (l == 2) {
-
+        setElemColor("back", lightGreen, lightRed);
+        setElemColor("main", green, black);
     }
     else if (l == 3) {
-
+        setElemColor("back", lightOrange, lightOrange);
+        setElemColor("main", orange, black);
+    }
+    else if (l == 4) {
+        setElemColor("back", lightRed, lightRed);
+        setElemColor("main", red, black);
     }
 }

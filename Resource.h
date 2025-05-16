@@ -1,4 +1,4 @@
-﻿#pragma once
+﻿#pragma once﻿
 #include <string>
 using namespace std;
 class Resource {
@@ -17,4 +17,3 @@ public:
     bool take(int k);
     void back(int k);
 };
-
