@@ -14,7 +14,6 @@ private:
     int losses;
 public:
     GameState(int l = 1) : level(l), wins(0), losses(0) { init_level(level); }
-
     void init_level(int v);
     string action_result(int proc_id, int res_id, int k);
     bool deadlock_detect();
