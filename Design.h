@@ -1,4 +1,5 @@
 #pragma once
+#include "fix_for_mac.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <string>

@@ -1,4 +1,5 @@
-﻿#include <SFML/Graphics.hpp>
+﻿#include "fix_for_mac.h"
+#include <SFML/Graphics.hpp>
 #include "GameState.h"
 #include "Design.h"
 #include <iostream>

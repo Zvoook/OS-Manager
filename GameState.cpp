@@ -1,5 +1,7 @@
 ﻿#include "GameState.h"
 #include <iostream>
+#include "json.hpp"
+using json = nlohmann::json;
 
 void GameState::init_level(int v) {
     level = v;
