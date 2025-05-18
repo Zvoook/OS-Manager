@@ -96,7 +96,11 @@ int main() {
         Process(6, names[6] + "     ", {3, 5, 6, 4, 1})
     };
 
-    game.set_manual(resources, processes, cur_res_count);
+    game.load_from_file("save_file");
+
+    if (!game.load_from_file("save_file")) {
+        game.set_manual(resources, processes, cur_res_count);
+    }
 
     Text statistic;
     statistic.setFont(font);
@@ -181,7 +185,9 @@ int main() {
             Text text = create_proc_text(j, cur_res_count, proc, font);
             window.draw(text);
         }
+
         window.display();
     }
+    game.save_to_file("save_file");
     return 0;
 }
