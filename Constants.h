@@ -1,4 +1,4 @@
-п»ї#pragma once
+#pragma once
 const float SCREEN_WIDTH = 1024.f;
 const float SCREEN_HEIGHT = 768.f;
 
@@ -28,11 +28,11 @@ const float FRAME_HEIGHT_PROC = 280.f;
 const float FRAME_X_PROC = 60.f;
 const float FRAME_Y_PROC = 420.f;
 
-// РЎРјРµС‰РµРЅРёРµ С‚РµРєСЃС‚Р° РІРѕ С„СЂРµР№РјР°С… (Р·Р°РіРѕР»РѕРІРєР°С…)
-const float FRAME_TEXT_OFFSET_X = 160.f;
+// Смещение текста во фреймах (заголовках)
+const float FRAME_TEXT_OFFSET_X = 140.f;
 const float FRAME_TEXT_OFFSET_Y = -1.f;
 
-// РЎРјРµС‰РµРЅРёРµ С‚РµРєСЃС‚Р° РІ РєРЅРѕРїРєР°С…
+// Смещение текста в кнопках
 const float BUTTON_TEXT_OFFSET_X = 130.f;
 const float BUTTON_TEXT_OFFSET_Y = 13.f;
 
@@ -41,5 +41,3 @@ const int RES_STEP = 30;
 
 const int PROC_OFFSET = 160;
 const int PROC_STEP = 25;
-
-const int START_PROC_COUNT = 3;
