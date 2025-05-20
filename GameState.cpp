@@ -1,5 +1,9 @@
 ﻿#include "GameState.h"
 #include <iostream>
+#include <fstream>
+#include <algorithm>
+//#include "json.hpp"
+//using json = nlohmann::json;
 
 void GameState::init_level(int v) {
     level = v;
@@ -109,10 +113,61 @@ tuple<int, int, int> GameState::create_random_request() {
 }
 
 void GameState::set_manual(const vector<Resource>& res, const vector<Process>& proc, int count) {
-    for (int i = 0; i < count && i < res.size(); ++i) resources.push_back(res[i]);
-    for (int i = 0; i < count; ++i) processes.push_back(proc[i]);
-    int r = resources.size(), p = processes.size();
-    available.resize(r);
-    allocation.assign(p, vector<int>(r, 0));
-    for (int i = 0; i < r; ++i) available[i] = resources[i].get_available();
+    int pc = min(count, (int)proc.size()), rc = min(count, (int)res.size());
+    for (int i = 0; i < rc; ++i) resources.push_back(res[i]);
+    for (int i = 0; i < pc; ++i) processes.push_back(proc[i]);
+    available.resize(rc);
+    allocation.assign(pc, vector<int>(rc, 0));
+    for (int i = 0; i < rc; ++i) available[i] = resources[i].get_available();
 }
+
+//void GameState::save_to_file(const std::string& filename) const {
+//    json j;
+//    j["level"] = level;
+//    j["wins"] = wins;
+//    j["losses"] = losses;
+//
+//    j["available"] = available;
+//    j["allocation"] = allocation;
+//
+//    j["resources"] = json::array();
+//    for (const auto& res : resources)
+//        j["resources"].push_back({ {"id", res.get_id()}, {"name", res.get_name()}, {"total", res.get_total()}, {"available", res.get_available()} });
+//
+//    j["processes"] = json::array();
+//    for (const auto& proc : processes)
+//        j["processes"].push_back({ {"id", proc.get_id()}, {"name", proc.get_name()}, {"max_require", proc.get_max_require()}, {"alloc", proc.get_alloc()} });
+//
+//    std::ofstream file(filename);
+//    if (file) file << j.dump(4);
+//}
+//
+//bool GameState::load_from_file(const std::string& filename) {
+//    std::ifstream file(filename);
+//    if (!file) return false;
+//
+//    json j;
+//    file >> j;
+//
+//    level = j["level"];
+//    wins = j["wins"];
+//    losses = j["losses"];
+//    available = j["available"].get<std::vector<int>>();
+//    allocation = j["allocation"].get<std::vector<std::vector<int>>>();
+//
+//    resources.clear();
+//    for (const auto& resj : j["resources"]) {
+//        Resource res(resj["id"], resj["name"], resj["total"]);
+//        res.set_available(resj["available"]);
+//        resources.push_back(res);
+//    }
+//
+//    processes.clear();
+//    for (const auto& procj : j["processes"]) {
+//        Process proc(procj["id"], procj["name"], procj["max_require"]);
+//        proc.set_alloc(procj["alloc"]);
+//        processes.push_back(proc);
+//    }
+//
+//    return true;
+//}

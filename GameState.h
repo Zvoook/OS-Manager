@@ -2,6 +2,7 @@
 #include "Process.h"
 #include "Resource.h"
 #include <vector>
+#include <string>
 
 class GameState {
 private:
@@ -14,6 +15,7 @@ private:
     int losses;
 public:
     GameState(int l = 1) : level(l), wins(0), losses(0) { init_level(level); }
+
     void init_level(int v);
     string action_result(int proc_id, int res_id, int k);
     bool deadlock_detect();
@@ -31,4 +33,7 @@ public:
     int get_lvl() const { return level; }
     int get_wins() const { return wins; }
     int get_losses() const { return losses; }
+
+    void save_to_file(const string& filename) const;
+    bool load_from_file(const string& filename);
 };
