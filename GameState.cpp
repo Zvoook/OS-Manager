@@ -1,8 +1,8 @@
 ﻿#include "GameState.h"
 #include <iostream>
-#include "json.hpp"
 #include <fstream>
-using json = nlohmann::json;
+
+
 
 void GameState::init_level(int v) {
     level = v;
@@ -121,53 +121,105 @@ void GameState::set_manual(const vector<Resource>& res, const vector<Process>& p
 }
 
 void GameState::save_to_file(const std::string& filename) const {
-    json j;
-    j["level"] = level;
-    j["wins"] = wins;
-    j["losses"] = losses;
+    ofstream file(filename);
+    if (!file) return;
 
-    j["available"] = available;
-    j["allocation"] = allocation;
+    file << level << " " << wins << " " << losses << "\n";
 
-    j["resources"] = json::array();
-    for (const auto& res : resources)
-        j["resources"].push_back({ {"id", res.get_id()}, {"name", res.get_name()}, {"total", res.get_total()}, {"available", res.get_available()} });
+    file << available.size() << "\n";
+    for (int a : available) file << a << " ";
+    file << "\n";
 
-    j["processes"] = json::array();
-    for (const auto& proc : processes)
-        j["processes"].push_back({ {"id", proc.get_id()}, {"name", proc.get_name()}, {"max_require", proc.get_max_require()}, {"alloc", proc.get_alloc()} });
 
-    std::ofstream file(filename);
-    if (file) file << j.dump(4);
+    file << allocation.size() << " " << (allocation.empty() ? 0 : allocation[0].size()) << "\n";
+    for (const auto& row : allocation) {
+        for (int val : row) file << val << " ";
+        file << "\n";
+    }
+
+
+    file << resources.size() << "\n";
+    for (const auto& res : resources) {
+        file << res.get_id() << "\n";
+        file << res.get_name() << "\n";
+        file << res.get_total() << " " << res.get_available() << "\n";
+    }
+
+
+    file << processes.size() << "\n";
+    for (const auto& proc : processes) {
+        file << proc.get_id() << "\n";
+        file << proc.get_name() << "\n";
+
+        const auto& max = proc.get_max_require();
+        const auto& alloc = proc.get_alloc();
+        file << max.size() << "\n";
+        for (int val : max) file << val << " ";
+        file << "\n";
+        for (int val : alloc) file << val << " ";
+        file << "\n";
+    }
 }
 
 bool GameState::load_from_file(const std::string& filename) {
-    std::ifstream file(filename);
+    ifstream file(filename);
     if (!file) return false;
 
-    json j;
-    file >> j;
-
-    level = j["level"];
-    wins = j["wins"];
-    losses = j["losses"];
-    available = j["available"].get<std::vector<int>>();
-    allocation = j["allocation"].get<std::vector<std::vector<int>>>();
-
+    processes.clear();
     resources.clear();
-    for (const auto& resj : j["resources"]) {
-        Resource res(resj["id"], resj["name"], resj["total"]);
-        res.set_available(resj["available"]);
+    allocation.clear();
+    available.clear();
+
+    file >> level >> wins >> losses;
+
+    int available_size;
+    file >> available_size;
+    available.resize(available_size);
+    for (int i = 0; i < available_size; ++i)
+        file >> available[i];
+
+    int alloc_rows, alloc_cols;
+    file >> alloc_rows >> alloc_cols;
+    allocation.assign(alloc_rows, std::vector<int>(alloc_cols));
+    for (int i = 0; i < alloc_rows; ++i)
+        for (int j = 0; j < alloc_cols; ++j)
+            file >> allocation[i][j];
+
+    int res_count;
+    file >> res_count;
+    for (int i = 0; i < res_count; ++i) {
+        int id, total, available_val;
+        std::string name;
+        file >> id;
+        file.ignore(); // съесть \n
+        getline(file, name);
+        file >> total >> available_val;
+
+        Resource res(id, name, total);
+        res.set_available(available_val);
         resources.push_back(res);
     }
 
-    processes.clear();
-    for (const auto& procj : j["processes"]) {
-        Process proc(procj["id"], procj["name"], procj["max_require"]);
-        proc.set_alloc(procj["alloc"]);
+    int proc_count;
+    file >> proc_count;
+    for (int i = 0; i < proc_count; ++i) {
+        int id, size;
+        std::string name;
+        file >> id;
+        file.ignore();
+        getline(file, name);
+        file >> size;
+
+        std::vector<int> max(size), alloc(size);
+        for (int j = 0; j < size; ++j) file >> max[j];
+        for (int j = 0; j < size; ++j) file >> alloc[j];
+
+        Process proc(id, name, max);
+        proc.set_alloc(alloc);
         processes.push_back(proc);
     }
 
     return true;
 }
+
 

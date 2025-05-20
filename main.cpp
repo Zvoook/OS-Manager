@@ -96,9 +96,9 @@ int main() {
         Process(6, names[6] + "     ", {3, 5, 6, 4, 1})
     };
 
-    game.load_from_file("save_file");
+    game.load_from_file("save_file.txt");
 
-    if (!game.load_from_file("save_file")) {
+    if (!game.load_from_file("save_file.txt")) {
         game.set_manual(resources, processes, cur_res_count);
     }
 
@@ -188,6 +188,6 @@ int main() {
 
         window.display();
     }
-    game.save_to_file("save_file");
+    game.save_to_file("save_file.txt");
     return 0;
 }
