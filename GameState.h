@@ -15,7 +15,7 @@ private:
     int wins;
     int losses;
     std::string player_name;
-    std::map<std::string, int> rating;
+    std::map<std::string, std::pair<int, int>> rating;
 
 public:
     GameState(int l = 1) : level(l), wins(0), losses(0) { init_level(level); }
@@ -42,9 +42,10 @@ public:
     bool load_from_file(const string& filename);
 
     void set_player(const std::string& name);
-    const std::map<std::string, int>& get_rating() const;
     void update_rating();
     void load_rating(const std::string& filename);
     void save_rating(const std::string& filename);
+    std::map<std::string, std::pair<int, int>>& get_rating();
+
 
 };

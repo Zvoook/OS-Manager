@@ -1,4 +1,4 @@
-﻿#include "Design.h"
+#include "Design.h"
 #include "Constants.h"
 
 Frame::Frame(const Font& font, const String& tite, float s)
@@ -49,7 +49,7 @@ void Button::hover(bool x, bool t) {
             text.setFillColor(white);
         }
     }
-    else {
+    else { 
         border.setFillColor(yellow);
         text.setFillColor(black);
     }
@@ -179,25 +179,31 @@ Input::Input(const Font& font, Vector2f position, Vector2f size) : active(false)
     accept = Button(font, "OK", 40);
     accept.setPosition(Vector2f(OK_FIELD_X + OK_FIELD_WIDTH + 40, OK_Y));
     accept.setSize(Vector2f(OK_BUTTION_WIDTH, OK_HEIGHT));
-    accept.setTextPos(OK_FIELD_X + OK_FIELD_WIDTH + 45, OK_Y + 5);
+    accept.setTextPos(OK_FIELD_X + OK_FIELD_WIDTH + 45, OK_Y+5);
 }
+
 void Input::handleEvent(const Event& event)
 {
     if (event.type == Event::MouseButtonPressed) {
         Vector2f mouse(event.mouseButton.x, event.mouseButton.y);
         active = texture.getGlobalBounds().contains(mouse);
         texture.setOutlineColor(active ? Color::Blue : Color::Black);
+
+        if (accept.contains(mouse)) {
+            accept.activate(true);
+        }
     }
     else if (active && event.type == Event::TextEntered) {
         if (event.text.unicode == '\b') {
             if (!content.empty()) content.pop_back();
         }
         else if (event.text.unicode >= 32 && event.text.unicode < 128) {
-            content += (wchar_t)(event.text.unicode);
+            content += static_cast<wchar_t>(event.text.unicode);
         }
         text.setString(content);
     }
 }
+
 void Input::draw(RenderWindow& window) const
 {
     window.draw(texture);
@@ -213,13 +219,13 @@ Menu::Menu(const Font& font)
     main = Frame(font, "MAIN MENU", 80);
     main.setPosition(Vector2f(MAIN_X, MAIN_Y));
     main.setSize(Vector2f(MAIN_WIDTH, MAIN_HEIGHT));
-    main.setTextPos(SCREEN_WIDTH / 3.4, MAIN_Y + 10);
+    main.setTextPos(SCREEN_WIDTH /3.4, MAIN_Y+10);
     main.setColor(white, black);
 
     info = Frame(font, "ABOUT GAME", 30);
     info.setPosition(Vector2f(INFO_X, INFO_Y));
     info.setSize(Vector2f(INFO_WIDTH, INFO_HEIGHT));
-    info.setTextPos(INFO_X + INFO_WIDTH / 2.5, INFO_Y + INFO_HEIGHT / 12);
+    info.setTextPos(INFO_X + INFO_WIDTH/2.5, INFO_Y + INFO_HEIGHT/12);
     info.setColor(yellow, black);
 
     input = Input(font, { OK_FIELD_X, OK_Y }, { OK_FIELD_WIDTH, OK_HEIGHT });
@@ -233,7 +239,7 @@ Menu::Menu(const Font& font)
     l1 = Button(font, "LEVEL 1", 22);
     l1.setPosition(Vector2f(L1_X, L_Y));
     l1.setSize(Vector2f(LEVEL_WIDTH, LEVEL_HEIGHT));
-    l1.setTextPos(L1_X + LEVEL_WIDTH / 4, L_Y + LEVEL_HEIGHT / 3);
+    l1.setTextPos(L1_X+ LEVEL_WIDTH/4, L_Y + LEVEL_HEIGHT / 3);
     l1.setColor(lightBlue, black);
 
     l2 = Button(font, "LEVEL 2", 22);

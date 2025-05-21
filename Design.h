@@ -1,8 +1,10 @@
-﻿#pragma once
+#pragma once
 #include "fix_for_mac.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <string>
+#include <locale>
+#include <codecvt>
 #include "Constants.h"
 #include "GameState.h"
 using namespace std;
@@ -25,7 +27,7 @@ const Color darkGreen(0, 120, 0);
 const Color darkRed(120, 0, 0);
 
 
-class Frame :public Drawable {
+class Frame:public Drawable {
 protected:
     RectangleShape back, border;
     Text text;
@@ -37,17 +39,17 @@ public:
     void draw(RenderTarget& target, RenderStates states) const override;
     void setSize(const Vector2f& size);
     void setPosition(const Vector2f& p);
-    void setTextPos(float x, float y) { text.setPosition(x, y); }
+    void setTextPos(float x, float y) { text.setPosition(x,y); }
 };
 
-class Button :public Drawable {
+class Button:public Drawable {
 private:
     RectangleShape back, border;
     Text text;
     bool isHovered, isActive;
     Vector2f size, pos;
 public:
-    Button() :isHovered(false), isActive(false) {};
+    Button():isHovered(false), isActive(false) {};
     Button(const Font& font, const String& mes, float s);
     void setColor(Color col, Color col2) { border.setFillColor(col); border.setOutlineColor(col2); }
     void hover(bool x, Color self);
@@ -76,12 +78,20 @@ public:
     Input(const Font& font, Vector2f position, Vector2f size);
 
     void handleEvent(const Event& event);
-
     void draw(RenderWindow& window) const;
+
     wstring getText() const { return content; }
-    bool is_empty() const { return content == ""; }
+    bool is_empty() const { return content.empty(); }
     void clear() { content.clear(); text.setString(""); }
+
+    std::string get_content() const {
+        std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
+        return conv.to_bytes(content);
+    }
+    bool ok_clicked() const { return accept.get_active(); }
+    void reset() { accept.activate(false); }
 };
+
 
 class LevelDesign {
 private:
@@ -91,7 +101,7 @@ private:
 public:
     LevelDesign(const Font& font);
     void draw(RenderWindow& w);
-    void reconstruct(int l = 0);
+    void reconstruct(int l=0);
     void setElemColor(const string& name, const Color& Col1, const Color& Col2);
     int interactive(const Vector2f& mousePos, bool cl);
 };
@@ -100,9 +110,10 @@ class Menu {
 private:
     Frame main, info;
     Button stats, l1, l2, l3, l4;
-    Input input;
+
     RectangleShape background;
 public:
+    Input input;
     Menu() = default;
     Menu(const Font& font);
     void draw(RenderWindow& w);

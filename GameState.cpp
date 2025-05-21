@@ -171,3 +171,38 @@ void GameState::set_manual(const vector<Resource>& res, const vector<Process>& p
 //
 //    return true;
 //}
+
+void GameState::set_player(const std::string& name) {
+    player_name = name;
+}
+
+void GameState::update_rating() {
+    auto& [lvl, wins] = rating[player_name];
+    lvl = std::max(lvl, level);
+    wins += 1;
+}
+
+void GameState::load_rating(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) return;
+
+    std::string name;
+    int lvl, wins;
+    while (file >> name >> lvl >> wins) {
+        rating[name] = {lvl, wins};
+    }
+}
+
+void GameState::save_rating(const std::string& filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) return;
+
+    for (const auto& [name, stats] : rating) {
+        file << name << " " << stats.first << " " << stats.second << "\n";
+    }
+}
+
+std::map<std::string, std::pair<int, int>>& GameState::get_rating()  {
+    return rating;
+}
+
