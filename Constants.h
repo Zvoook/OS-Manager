@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <string>
 
+enum wins { level_win, menu_win, statistic_win };
+
 // ────────── размеры окна ──────────
 const float SCREEN_WIDTH = 1024.f;
 const float SCREEN_HEIGHT = 768.f;
@@ -30,13 +32,17 @@ const float BUTTON_X_GRANT = 400.f;
 const float BUTTON_X_DENY = 690.f;
 const float BUTTON_Y = 320.f;
 
+const float MENU_BUTTON_WIDTH = 100.f;
+const float MENU_BUTTON_HEIGHT = 40;
+const float MENU_BUTTON_X = 860;
+const float MENU_BUTTON_Y = 50;
+
 // ────────── ввод ──────────
 const float OFFSET_FOR_TEXT = SCREEN_HEIGHT / 7;
-const float OK_FIELD_WIDTH = 400.f;
-const float OK_BUTTION_WIDTH = 60.f;
-const float OK_HEIGHT = 60;
-const float OK_FIELD_X = SCREEN_WIDTH / 2 - 0.5 * OK_FIELD_WIDTH;
-const float OK_Y = SCREEN_HEIGHT / 2 + OFFSET_FOR_TEXT;
+const float INP_FIELD_WIDTH = 700.f;
+const float INP_HEIGHT = 60;
+const float INP_FIELD_X = SCREEN_WIDTH / 2 - 0.5 * INP_FIELD_WIDTH;
+const float INP_Y = SCREEN_HEIGHT / 2 + OFFSET_FOR_TEXT;
 
 // ────────── кнопки выбора уровня ──────────
 const float BUT_OFFSET = 230;
@@ -82,7 +88,7 @@ const int PROC_STEP = 28;
 const int START_PROC_COUNT = 3;
 
 // ────────── «линейка» для табличек ──────────
-const double  RES_NAME_WIDTH = 7;   // «CPU», «DISK» …
-const double  PROC_NAME_WIDTH = 15;  // «Notepad», «Explorer» …
-const double  CELL_WIDTH = 7;   // «16/16», «0/12» …
-inline const std::string SEP = "  "; // два пробела
+const double  RES_NAME_WIDTH = 7;
+const double  PROC_NAME_WIDTH = 15;
+const double  CELL_WIDTH = 7;
+inline const std::string SEP = "  ";

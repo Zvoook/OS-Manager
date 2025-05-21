@@ -4,26 +4,21 @@
 #include "Constants.h"
 #include "GameState.h"
 #include "Design.h"
-
 using namespace sf;
-using namespace std;
 
-// Обрезка строки до ширины width
-string fix_str(const string& text, int width) {
+
+string fix_str(const string& text, int width)
+{
     if (text.length() >= size_t(width))
         return text.substr(0, width - 1) + "~";
     return text + string(width - text.length(), ' ');
 }
-
-// Обновление строки статистики
-void updateStatistic(Text& t, const GameState& g) {
-    t.setString("Level: " + to_string(g.get_lvl()) +
-        "   Wins: " + to_string(g.get_wins()) +
-        "   Losses: " + to_string(g.get_losses()));
+void updateStatistic(Text& t, const GameState& g)
+{
+    t.setString("Level: " + to_string(g.get_lvl()) + "   Wins: " + to_string(g.get_wins()) + "   Losses: " + to_string(g.get_losses()));
 }
-
-// Создание текста для ресурса
-Text create_res_text(int row, const Resource& r, Font& f) {
+Text create_res_text(int row, const Resource& r, Font& f)
+{
     Text t("", f, 24);
     t.setFillColor(black);
     string line = fix_str(r.get_name(), RES_NAME_WIDTH) + SEP +
@@ -34,221 +29,190 @@ Text create_res_text(int row, const Resource& r, Font& f) {
         FRAME_Y_RES + RES_OFFSET + row * RES_STEP);
     return t;
 }
+Text create_proc_text(int row, int resCnt, const Process& p, Font& f)
+{
 
-// Создание текста для процесса
-Text create_proc_text(int row, int resCnt, const Process& p, Font& f) {
     Text t("", f, 24);
     t.setFillColor(black);
     string line = fix_str(p.get_name(), PROC_NAME_WIDTH);
     const auto& alloc = p.get_alloc();
     const auto& max = p.get_max_require();
+
     for (int i = 0; i < resCnt; ++i) {
         int need = max[i] - alloc[i];
-        line += need
-            ? fix_str(to_string(need), CELL_WIDTH)
-            : fix_str("-", CELL_WIDTH);
+        if (!need) line += fix_str("-", CELL_WIDTH);
+        else line += fix_str(to_string(need), CELL_WIDTH);
     }
     t.setString(line);
     t.setPosition(FRAME_X_PROC + 20,
         FRAME_Y_PROC + PROC_OFFSET + row * PROC_STEP);
     return t;
 }
-
-// Заголовок таблицы процессов
-Text makeHeader(const vector<string>& names, Font& f, int c) {
+Text makeHeader(const vector<string>& names, Font& f, int c)
+{
     Text h("", f, 22);
     h.setFillColor(black);
     string line = fix_str("", PROC_NAME_WIDTH);
-    for (int i = 0; i < c && i < (int)names.size(); ++i)
-        line += fix_str(names[i], CELL_WIDTH);
+    int i = 0;
+    for (const auto& n : names) {
+        if (i < c) {
+            line += fix_str(n, CELL_WIDTH);
+            ++i;
+        }
+    }
     h.setString(line);
-    h.setPosition(FRAME_X_PROC + 48.5f,
-        FRAME_Y_PROC + PROC_OFFSET - 25);
+    h.setPosition(FRAME_X_PROC + 48.5, FRAME_Y_PROC + PROC_OFFSET - 25);
     return h;
 }
+void wait(int sec) {
+    Clock time;
+    while (time.getElapsedTime().asSeconds() < sec) {};
+}
 
-int main() {
+int main()
+{
     srand(time(0));
-    // Загрузка шрифта и иконки
     Font font;
     Image icon;
-    if (!font.loadFromFile("Font.ttf") || !icon.loadFromFile("man.jpg"))
-        return 1;
+    if (!font.loadFromFile("Font.ttf") || !icon.loadFromFile("man.jpg")) return 1;
+    RenderWindow window(VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Resource Manager", Style::Close);
 
-    // Окно
-    RenderWindow window(VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT),
-        "Resource Manager", Style::Close);
-    window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
+    wins stat = menu_win;
+    bool need_to_wait = false;
 
-    // Состояние игры и UI
-    GameState game;
+    vector<float> coeff = { 0.95f, 0.7f, 0.5f, 0.35f };
+    int proc_cnt[] = { 3, 4, 5, 6 };
+    int res_cnt[] = { 3, 4, 5, 6 };
+
+    vector<string> res_names = { "CPU", "RAM", "HDD", "NET", "GPU", "VRAM" };
+    vector<string> proc_names = { "Notepad", "Explorer", "Compiler", "Discord", "Minecraft", "Chrome" };
+    vector<Process> all_proc = {
+        {0, "Notepad",   {0, 2, 1, 0, 0, 0}}, {1, "Explorer",  {2, 3, 2, 0, 0, 0}},
+        {2, "Compiler",  {2, 3, 5, 0, 0, 0}}, {3, "Discord",   {5, 3, 3, 2, 0, 0}},
+        {4, "Minecraft", {4, 5, 4, 3, 5, 1}}, {5, "Chrome",    {3, 5, 6, 4, 1, 0}}
+    };
+
+    GameState game(all_proc, res_names, proc_cnt, res_cnt, coeff);
     LevelDesign ui(font);
     Menu menu(font);
+    Statistics statistics(font);
 
-    // Тексты
-    Text stat("", font, 20);
-    stat.setFillColor(black);
-    stat.setPosition(57, 70);
+    int opened_levels = 4;
 
-    Text info("", font, 21);
-    info.setFillColor(black);
-    info.setPosition(430, 160);
-
-    Text menu_info(
-        "It's the OS operator game. This game simulate actual OS working.\n"
-        "You should grant or deny requests from processes and avoid deadlock.",
-        font, 19);
-    menu_info.setFillColor(black);
-    menu_info.setPosition(INFO_X + 30, INFO_Y + 70);
-
-    // Режим: меню или игра
-    bool in_menu = true;
-    bool levelSelected = false;
-
-    // Источники ресурсов и процессов (по умолчанию)
-    vector<string> res_names = { "CPU", "RAM", "DISK", "NET", "GPU" };
-    vector<Resource> resources = {
-        {0, "CPU",  8}, {1, "RAM", 16}, {2, "DISK", 6},
-        {3, "NET",  4}, {4, "GPU",  8}
-    };
-    vector<string> proc_names = {
-        "Notepad", "Explorer", "Compiler", "Discord", "Minecraft", "Chrome"
-    };
-    vector<Process> processes = {
-        {0, proc_names[0], {0,2,1,1,0}},
-        {1, proc_names[1], {2,3,2,0,0}},
-        {2, proc_names[2], {2,3,5,3,0}},
-        {3, proc_names[3], {5,3,3,2,0}},
-        {4, proc_names[4], {4,5,4,3,5}},
-        {5, proc_names[5], {3,5,6,4,1}}
-    };
-
-    // Инициализация уровня
-    int proc_count = START_PROC_COUNT + game.get_lvl() - 1;
-    game.set_manual(resources, processes, proc_count);
+    window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
     ui.reconstruct(game.get_lvl());
-    Text header = makeHeader(res_names, font, proc_count);
 
-    // Для случайных запросов
+    int proc_count = START_PROC_COUNT + game.get_lvl() - 1;
+
+    Text header = makeHeader(res_names, font, proc_count);
+    Text stats("", font, 20);  stats.setFillColor(black); stats.setPosition(57, 70);
+    Text info("", font, 21);  info.setFillColor(black); info.setPosition(430, 160);
+    Text menu_info("It's the OS operator game. This game simulate actual OS working.\nYou should grant or deny requests from processes and avoid deadlock.", font, 19); menu_info.setFillColor(black); menu_info.setPosition(Vector2f(INFO_X + 30, INFO_Y + 70));
+
     Vector2f mouse;
     bool waiting = false;
     tuple<int, int, int> req{ -1,-1,-1 };
-    Clock randClock;
-    float lastRandTime = 0;
-    int interval = 5 + rand() % 5;
+    Clock clock;
+    float  last = 0;  int interval = rand() % 4;
 
-    // Для дельта-времени анимации перехода
-    Clock deltaClock;
 
-    // Главный цикл
-    while (window.isOpen()) {
-        float dt = deltaClock.restart().asSeconds();
-
-        // Обработка событий
+    while (window.isOpen())
+    {
         Event event;
-        while (window.pollEvent(event)) {
+        while (window.pollEvent(event))
+        {
             if (event.type == Event::Closed ||
-                (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape)) {
+                (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape))
                 window.close();
-            }
-            if (event.type == Event::MouseMoved) {
-                mouse = { float(event.mouseMove.x), float(event.mouseMove.y) };
-            }
 
-            if (in_menu && !menu.is_animation_active()) {
-                // В меню — только клики по кнопкам
-                if (event.type == Event::MouseButtonPressed) {
-                    int lvl = menu.interactive(mouse, true);
-                    if (lvl != 0) {
-                        levelSelected = true;
+            if (event.type == Event::MouseMoved)
+                mouse = { float(event.mouseMove.x), float(event.mouseMove.y) };
+
+            if (stat == menu_win) {
+                menu.handle(event);
+                if (menu.text_entered()) menu.upd_buttons(opened_levels);
+                if (event.type == Event::MouseButtonPressed)
+                {
+                    int state = menu.interactive(mouse, true);
+                    if (state && state != 5) {
+                        stat = level_win;
+                        game.set_level(state);
+                        game.init_level(all_proc, res_names, proc_cnt, res_cnt, coeff, state);
+                        ui.reconstruct(game.get_lvl());
+                        int cur_proc_count = START_PROC_COUNT + game.get_lvl() - 1;
+                        header = makeHeader(res_names, font, cur_proc_count);
+                    }
+                    else if (state == 5) stat = statistic_win;
+                }
+                window.clear(white);
+                menu.draw(window);
+                window.draw(menu_info);
+                window.display();
+            }
+            else if (stat == level_win) {
+                if (clock.getElapsedTime().asSeconds() - last >= interval)
+                {
+                    last = clock.getElapsedTime().asSeconds();
+                    interval = rand() % 4;
+                    if (!waiting)
+                    {
+                        req = game.create_random_request();
+                        auto [pid, rid, amt] = req;
+                        if (pid >= 0)
+                        {
+                            waiting = true;
+                            info.setString(proc_names[pid] + " requests " +
+                                to_string(amt) + " of " + res_names[rid]);
+                        }
                     }
                 }
-            }
-            else if (!in_menu && !menu.is_animation_active()) {
-                // В игре — обработка UI процессов
-                if (event.type == Event::MouseButtonPressed) {
+                if (event.type == Event::MouseButtonPressed)
+                {
                     int state = ui.interactive(mouse, true);
-                    if (state && waiting) {
+                    if (state == 2) stat = menu_win;
+                    else if (state && waiting)
+                    {
                         auto [pid, rid, amt] = req;
-                        info.setString(state == 1
-                            ? game.action_result(pid, rid, amt)
-                            : "Request denied!");
+                        info.setString(state == 1 ? game.action_result(pid, rid, amt) : "Request denied");
+                        if (info.getString() == "Resource successful granted\n\nPROCESS COMPLETED") {
+                            if (game.is_lvl_passed()) info.setString("LEVEL COMPLETED");
+                            /*wait(3);*/
+                        }
+                        else if (info.getString() == "You face to deadlock\n\nGAME OVER") {
+                            /*wait(3);*/
+                            game.init_level(all_proc, res_names, proc_cnt, res_cnt, coeff, game.get_lvl());
+                        }
                         waiting = false;
                     }
                 }
-                else {
-                    ui.interactive(mouse, false);
+                else ui.interactive(mouse, false);
+
+
+                window.clear(white);
+                ui.draw(window);
+                updateStatistic(stats, game);
+                window.draw(stats);
+                window.draw(info);
+                window.draw(header);
+                int row = 0;
+                for (const auto& r : game.get_vec_res())
+                    window.draw(create_res_text(row++, r, font));
+                row = 0;
+                for (const auto& p : game.get_vec_pr())
+                    window.draw(create_proc_text(row++, game.get_vec_res().size(), p, font));
+                window.display();
+            }
+            else if (stat == statistic_win) {
+                if (event.type == Event::MouseButtonPressed)
+                {
+                    int state = statistics.interactive(mouse, -1);
+                    if (state) stat = menu_win;
                 }
+                window.clear(white);
+                statistics.draw(window);
+                window.display();
             }
         }
-
-        // Обновление
-        if (levelSelected) {
-            // Анимация перехода внутри Menu
-            menu.update_animation(dt, game);
-            if (!menu.is_animation_active()) {
-                // Переход завершён — стартуем игру
-                levelSelected = false;
-                in_menu = false;
-
-                // Инициализируем новый уровень
-                int lvl = game.get_lvl();
-                proc_count = START_PROC_COUNT + lvl - 1;
-                game.set_manual(resources, processes, proc_count);
-                ui.reconstruct(lvl);
-                header = makeHeader(res_names, font, proc_count);
-            }
-        }
-        else if (!in_menu) {
-            // Только в игровом режиме — генерация случайных запросов
-            float t = randClock.getElapsedTime().asSeconds();
-            if (t - lastRandTime >= interval) {
-                lastRandTime = t;
-                interval = 3 + rand() % 7;
-                if (!waiting) {
-                    req = game.create_random_request();
-                    auto [pid, rid, amt] = req;
-                    if (pid >= 0) {
-                        waiting = true;
-                        info.setString(proc_names[pid] + " requests " +
-                            to_string(amt) + " of " + res_names[rid]);
-                    }
-                }
-            }
-        }
-
-        // Отрисовка
-        window.clear(white);
-
-        if (in_menu) {
-            menu.draw(window);
-            window.draw(menu_info);
-        }
-        else {
-            // Игровой экран
-            menu.draw(window);  // фон меню остаётся
-            updateStatistic(stat, game);
-            ui.draw(window);
-            window.draw(stat);
-            window.draw(info);
-            window.draw(header);
-
-            // Таблица ресурсов
-            int row = 0;
-            for (const auto& r : game.get_vec_res())
-                window.draw(create_res_text(row++, r, font));
-
-            // Таблица процессов
-            row = 0;
-            for (const auto& p : game.get_vec_pr())
-                window.draw(create_proc_text(row++, game.get_vec_res().size(), p, font));
-        }
-
-        // Поверх всего — анимация перехода
-        menu.draw_animation(window);
-
-        window.display();
     }
-
     return 0;
 }
