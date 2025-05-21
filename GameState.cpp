@@ -2,8 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-//#include "json.hpp"
-//using json = nlohmann::json;
+#include <sstream>
 
 void GameState::init_level(vector<Process>& pr, vector<string>& res_names, int pr_cnt[], int res_cnt[], vector<float>& coeff, int l) {
     level = l;
@@ -210,54 +209,136 @@ void GameState::release_finished() {
     }
 }
 
+// Сохранение состояния игры в текстовый файл
+void GameState::save_to_file(const string& filename) const {
+    ofstream file(filename);
+    if (!file) return;
 
-//void GameState::save_to_file(const std::string& filename) const {
-//    json j;
-//    j["level"] = level;
-//    j["wins"] = wins;
-//    j["losses"] = losses;
-//
-//    j["available"] = available;
-//    j["allocation"] = allocation;
-//
-//    j["resources"] = json::array();
-//    for (const auto& res : resources)
-//        j["resources"].push_back({ {"id", res.get_id()}, {"name", res.get_name()}, {"total", res.get_total()}, {"available", res.get_available()} });
-//
-//    j["processes"] = json::array();
-//    for (const auto& proc : processes)
-//        j["processes"].push_back({ {"id", proc.get_id()}, {"name", proc.get_name()}, {"max_require", proc.get_max_require()}, {"alloc", proc.get_alloc()} });
-//
-//    std::ofstream file(filename);
-//    if (file) file << j.dump(4);
-//}
-//
-//bool GameState::load_from_file(const std::string& filename) {
-//    std::ifstream file(filename);
-//    if (!file) return false;
-//
-//    json j;
-//    file >> j;
-//
-//    level = j["level"];
-//    wins = j["wins"];
-//    losses = j["losses"];
-//    available = j["available"].get<std::vector<int>>();
-//    allocation = j["allocation"].get<std::vector<std::vector<int>>>();
-//
-//    resources.clear();
-//    for (const auto& resj : j["resources"]) {
-//        Resource res(resj["id"], resj["name"], resj["total"]);
-//        res.set_available(resj["available"]);
-//        resources.push_back(res);
-//    }
-//
-//    processes.clear();
-//    for (const auto& procj : j["processes"]) {
-//        Process proc(procj["id"], procj["name"], procj["max_require"]);
-//        proc.set_alloc(procj["alloc"]);
-//        processes.push_back(proc);
-//    }
-//
-//    return true;
-//}
+    // Сохраняем базовую информацию
+    file << level << " " << wins << " " << losses << endl;
+
+    // Сохраняем доступные ресурсы
+    file << available.size() << endl;
+    for (int avail : available) {
+        file << avail << " ";
+    }
+    file << endl;
+
+    // Сохраняем матрицу allocation
+    file << processes.size() << " " << resources.size() << endl;
+    for (const auto& row : allocation) {
+        for (int val : row) {
+            file << val << " ";
+        }
+        file << endl;
+    }
+
+    // Сохраняем ресурсы
+    file << resources.size() << endl;
+    for (const auto& res : resources) {
+        file << res.get_id() << " ";
+        file << res.get_name() << " ";
+        file << res.get_total() << " ";
+        file << res.get_available() << endl;
+    }
+
+    // Сохраняем процессы
+    file << processes.size() << endl;
+    for (const auto& proc : processes) {
+        file << proc.get_id() << " ";
+        file << proc.get_name() << " ";
+
+        // Сохраняем max_require
+        const auto& max_req = proc.get_max_require();
+        file << max_req.size() << " ";
+        for (int req : max_req) {
+            file << req << " ";
+        }
+
+        // Сохраняем alloc
+        const auto& alloc = proc.get_alloc();
+        file << alloc.size() << " ";
+        for (int a : alloc) {
+            file << a << " ";
+        }
+
+        // Сохраняем статус завершения
+        file << proc.is_done() << endl;
+    }
+}
+
+// Загрузка состояния игры из текстового файла
+bool GameState::load_from_file(const string& filename) {
+    ifstream file(filename);
+    if (!file) return false;
+
+    // Загружаем базовую информацию
+    file >> level >> wins >> losses;
+
+    // Загружаем доступные ресурсы
+    int avail_size;
+    file >> avail_size;
+    available.resize(avail_size);
+    for (int i = 0; i < avail_size; ++i) {
+        file >> available[i];
+    }
+
+    // Загружаем матрицу allocation
+    int proc_count, res_count;
+    file >> proc_count >> res_count;
+    allocation.resize(proc_count, vector<int>(res_count));
+    for (int i = 0; i < proc_count; ++i) {
+        for (int j = 0; j < res_count; ++j) {
+            file >> allocation[i][j];
+        }
+    }
+
+    // Загружаем ресурсы
+    int res_size;
+    file >> res_size;
+    resources.clear();
+    for (int i = 0; i < res_size; ++i) {
+        int id, total, avail;
+        string name;
+        file >> id >> name >> total >> avail;
+        Resource res(id, name, total);
+        res.set_available(avail);
+        resources.push_back(res);
+    }
+
+    // Загружаем процессы
+    int proc_size;
+    file >> proc_size;
+    processes.clear();
+    for (int i = 0; i < proc_size; ++i) {
+        int id, max_size, alloc_size;
+        string name;
+        bool done;
+
+        file >> id >> name;
+
+        // Загружаем max_require
+        file >> max_size;
+        vector<int> max_req(max_size);
+        for (int j = 0; j < max_size; ++j) {
+            file >> max_req[j];
+        }
+
+        // Загружаем alloc
+        file >> alloc_size;
+        vector<int> alloc(alloc_size);
+        for (int j = 0; j < alloc_size; ++j) {
+            file >> alloc[j];
+        }
+
+        // Загружаем статус завершения
+        file >> done;
+
+        Process proc(id, name, max_req);
+        proc.set_alloc(alloc);
+        proc.set_done(done);
+        processes.push_back(proc);
+    }
+
+    return true;
+}

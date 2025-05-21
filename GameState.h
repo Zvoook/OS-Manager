@@ -38,6 +38,6 @@ public:
     int get_wins() const { return wins; }
     int get_losses() const { return losses; }
 
-    /*void save_to_file(const string& filename) const;
-    bool load_from_file(const string& filename);*/
+    void save_to_file(const string& filename) const;
+    bool load_from_file(const string& filename);
 };

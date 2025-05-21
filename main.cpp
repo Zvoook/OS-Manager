@@ -109,11 +109,16 @@ int main()
     Text info("", font, 21);  info.setFillColor(black); info.setPosition(430, 160);
     Text menu_info("It's the OS operator game. This game simulate actual OS working.\nYou should grant or deny requests from processes and avoid deadlock.", font, 19); menu_info.setFillColor(black); menu_info.setPosition(Vector2f(INFO_X + 30, INFO_Y + 70));
 
+    // Информация о сохранении/загрузке
+    Text save_info("Press S to save game, L to load game", font, 16);
+    save_info.setFillColor(black);
+    save_info.setPosition(SCREEN_WIDTH - 300, SCREEN_HEIGHT - 30);
+
     Vector2f mouse;
     bool waiting = false;
     tuple<int, int, int> req{ -1,-1,-1 };
     Clock clock;
-    float  last = 0;  int interval = rand() % 4;
+    float last = 0;  int interval = rand() % 4;
 
 
     while (window.isOpen())
@@ -127,6 +132,29 @@ int main()
 
             if (event.type == Event::MouseMoved)
                 mouse = { float(event.mouseMove.x), float(event.mouseMove.y) };
+
+            // Обработка клавиш S и L для сохранения и загрузки
+            if (event.type == Event::KeyPressed) {
+                if (stat == level_win) {  // Сохранение/загрузка работает только на экране уровня
+                    if (event.key.code == Keyboard::S) {
+                        // Сохранение игры
+                        game.save_to_file("save.txt");
+                        info.setString("Game saved to save.txt");
+                    }
+                    else if (event.key.code == Keyboard::L) {
+                        // Загрузка игры
+                        if (game.load_from_file("save.txt")) {
+                            info.setString("Game loaded from save.txt");
+                            ui.reconstruct(game.get_lvl());
+                            int cur_res_count = game.get_vec_res().size();
+                            header = makeHeader(res_names, font, cur_res_count);
+                        }
+                        else {
+                            info.setString("Failed to load game!");
+                        }
+                    }
+                }
+            }
 
             if (stat == menu_win) {
                 menu.handle(event);
@@ -182,6 +210,7 @@ int main()
                             /*wait(3);*/
                             game.init_level(all_proc, res_names, proc_cnt, res_cnt, coeff, game.get_lvl());
                         }
+                        // Сбрасываем флаг waiting после обработки запроса
                         waiting = false;
                     }
                 }
@@ -194,6 +223,7 @@ int main()
                 window.draw(stats);
                 window.draw(info);
                 window.draw(header);
+                window.draw(save_info);  // Отображаем информацию о сохранении/загрузке
                 int row = 0;
                 for (const auto& r : game.get_vec_res())
                     window.draw(create_res_text(row++, r, font));
@@ -205,7 +235,7 @@ int main()
             else if (stat == statistic_win) {
                 if (event.type == Event::MouseButtonPressed)
                 {
-                    int state = statistics.interactive(mouse, -1);
+                    int state = statistics.interactive(mouse, true);
                     if (state) stat = menu_win;
                 }
                 window.clear(white);
