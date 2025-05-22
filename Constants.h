@@ -88,11 +88,10 @@ const int PROC_STEP = 28;
 const int START_PROC_COUNT = 3;
 
 // ────────── «линейка» для табличек ──────────
-// ИСПРАВЛЕНО: Новые значения для идеального выравнивания
-const double RES_NAME_WIDTH = 8;    // Увеличено с 7 до 8 для имен ресурсов
-const double PROC_NAME_WIDTH = 12;  // Уменьшено с 15 до 12 для имен процессов
-const double CELL_WIDTH = 8;        // Увеличено с 7 до 8 для ячеек с числами
-inline const std::string SEP = "   "; // Увеличен разделитель с 2 до 3 пробелов
+const double  RES_NAME_WIDTH = 7;
+const double  PROC_NAME_WIDTH = 15;
+const double  CELL_WIDTH = 7;
+inline const std::string SEP = "  ";
 
 // ────────── блок «STATISTICS» ──────────
 const float STATS_FRAME_WIDTH = 900.f;

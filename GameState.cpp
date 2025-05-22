@@ -6,14 +6,12 @@
 #include <tuple>
 
 void GameState::init_level(vector<Process>& pr, vector<string>& res_names, int pr_cnt[], int res_cnt[], vector<float>& coeff, int l) {
-    // ДОБАВЛЕНО: Устанавливаем флаг переключения
-    level_switching = true;
-
     level = l;
     processes.clear();
     resources.clear();
     allocation.clear();
     available.clear();
+
     int p_count = pr_cnt[level - 1];
     int r_count = res_cnt[level - 1];
 
@@ -22,7 +20,9 @@ void GameState::init_level(vector<Process>& pr, vector<string>& res_names, int p
     processes.assign(pr.begin(), pr.begin() + safe_count);
 
     vector<vector<int>> max_require;
-    for (int i = 0; i < safe_count; ++i) max_require.push_back(processes[i].get_max_require());
+    for (int i = 0; i < safe_count; ++i) {
+        max_require.push_back(processes[i].get_max_require());
+    }
 
     vector<int> min_need(r_count, 0);
     for (int i = 0; i < r_count; ++i) {
@@ -34,7 +34,9 @@ void GameState::init_level(vector<Process>& pr, vector<string>& res_names, int p
 
     vector<int> res_sums(r_count, 0);
     for (const auto& m : max_require) {
-        for (int j = 0; j < r_count; ++j) res_sums[j] += m[j];
+        for (int j = 0; j < r_count; ++j) {
+            res_sums[j] += m[j];
+        }
     }
 
     for (int j = 0; j < r_count; ++j) {
@@ -58,9 +60,6 @@ void GameState::init_level(vector<Process>& pr, vector<string>& res_names, int p
         available.push_back(total);
     }
     allocation.assign(safe_count, vector<int>(r_count, 0));
-
-    // ДОБАВЛЕНО: Снимаем флаг переключения ТОЛЬКО в конце
-    level_switching = false;
 }
 
 bool GameState::is_lvl_passed() const {
@@ -72,10 +71,16 @@ bool GameState::is_lvl_passed() const {
 
 string GameState::action_result(int proc_id, int res_id, int k) {
     string mes;
+    if (proc_id < 0 || proc_id >= processes.size() ||
+        res_id < 0 || res_id >= resources.size() || k <= 0) {
+        return "Invalid request parameters";
+    }
+
     Process& proc = processes[proc_id];
     int need = proc.get_max_require()[res_id] - proc.get_alloc()[res_id];
 
     if (k > need || k > available[res_id]) return "";
+
     available[res_id] -= k;
     allocation[proc_id][res_id] += k;
     proc.add_res(res_id, k);
@@ -107,39 +112,40 @@ bool GameState::deadlock_detect() {
     int num_processes = processes.size();
     int num_resources = resources.size();
 
-
     vector<int> work = available;
-    vector<bool> Fillnish(num_processes, false);
+    vector<bool> finish(num_processes, false);
     vector<vector<int>> need(num_processes, vector<int>(num_resources));
+
     for (int i = 0; i < num_processes; ++i) {
         for (int j = 0; j < num_resources; ++j) {
             need[i][j] = processes[i].get_max_require()[j] - allocation[i][j];
         }
     }
+
     bool progress = true;
     while (progress) {
         progress = false;
         for (int i = 0; i < num_processes; ++i) {
-            if (!Fillnish[i]) {
-                bool can_Fillnish = true;
+            if (!finish[i]) {
+                bool can_finish = true;
                 for (int j = 0; j < num_resources; ++j) {
                     if (need[i][j] > work[j]) {
-                        can_Fillnish = false;
+                        can_finish = false;
                         break;
                     }
                 }
-                if (can_Fillnish) {
+                if (can_finish) {
                     for (int j = 0; j < num_resources; ++j) {
                         work[j] += allocation[i][j];
                     }
-                    Fillnish[i] = true;
+                    finish[i] = true;
                     progress = true;
                 }
             }
         }
     }
 
-    for (bool f : Fillnish) {
+    for (bool f : finish) {
         if (!f) {
             return false;
         }
@@ -148,46 +154,19 @@ bool GameState::deadlock_detect() {
 }
 
 tuple<int, int, int> GameState::create_random_request() {
-    // ИСПРАВЛЕНО: Простая проверка - если переключаем уровень, не генерируем запросы
-    if (level_switching || processes.empty()) {
-        return { -1, -1, -1 };
-    }
-
     int p_size = processes.size();
-
-    // ДОБАВЛЕНО: Дополнительная защита от некорректного размера
-    if (p_size <= 0) {
-        return { -1, -1, -1 };
-    }
-
     int tries = 20;
 
     while (tries--) {
-        // ДОБАВЛЕНО: Повторная проверка состояния на каждой итерации
-        if (level_switching || processes.empty() || processes.size() != p_size) {
-            return { -1, -1, -1 };
-        }
-
         int pid = rand() % p_size;
-
-        // ДОБАВЛЕНО: Дополнительная проверка границ
-        if (pid >= processes.size() || pid >= p_size) {
-            continue;
-        }
-
         if (processes[pid].is_done()) continue;
 
         const auto& rest = processes[pid].get_rest();
         for (int j = 0; j < rest.size(); ++j) {
-            // ИСПРАВЛЕНО: Добавлена проверка границ для available
-            if (j < available.size() && rest[j] > 0 && available[j] > 0) {
+            if (rest[j] > 0 && available[j] > 0) {
                 int max_req = min(rest[j], available[j]);
                 int amount = 1 + rand() % max_req;
-
-                // ДОБАВЛЕНО: Финальная проверка перед возвратом
-                if (!level_switching && pid < processes.size()) {
-                    return { pid, j, amount };
-                }
+                return { pid, j, amount };
             }
         }
     }
@@ -196,6 +175,11 @@ tuple<int, int, int> GameState::create_random_request() {
 }
 
 bool GameState::make_request(int proc_id, int res_id, int k) {
+    if (proc_id < 0 || proc_id >= processes.size() ||
+        res_id < 0 || res_id >= resources.size() || k <= 0) {
+        return false;
+    }
+
     Process& proc = processes[proc_id];
     int need = proc.get_max_require()[res_id] - proc.get_alloc()[res_id];
 
@@ -243,48 +227,60 @@ void GameState::release_finished() {
 void GameState::save_to_file(const string& filename) const {
     ofstream file(filename);
     if (!file) return;
-    file << level << " " << session_wins << " " << session_losses << endl;
 
-    file << available.size() << endl;
-    for (int avail : available) {
-        file << avail << " ";
-    }
-    file << endl;
-
-    file << processes.size() << " " << resources.size() << endl;
-    for (const auto& row : allocation) {
-        for (int val : row) {
-            file << val << " ";
+    try {
+        file << level << " " << wins << " " << losses << endl;
+        file << available.size() << endl;
+        for (size_t i = 0; i < available.size(); ++i) {
+            file << available[i];
+            if (i < available.size() - 1) file << " ";
         }
         file << endl;
-    }
-
-    file << resources.size() << endl;
-    for (const auto& res : resources) {
-        file << res.get_id() << " ";
-        file << res.get_name() << " ";
-        file << res.get_total() << " ";
-        file << res.get_available() << endl;
-    }
-
-    file << processes.size() << endl;
-    for (const auto& proc : processes) {
-        file << proc.get_id() << " ";
-        file << proc.get_name() << " ";
-
-        const auto& max_req = proc.get_max_require();
-        file << max_req.size() << " ";
-        for (int req : max_req) {
-            file << req << " ";
+        file << processes.size() << " " << resources.size() << endl;
+        for (size_t i = 0; i < allocation.size(); ++i) {
+            for (size_t j = 0; j < allocation[i].size(); ++j) {
+                file << allocation[i][j];
+                if (j < allocation[i].size() - 1) file << " ";
+            }
+            file << endl;
         }
 
-        const auto& alloc = proc.get_alloc();
-        file << alloc.size() << " ";
-        for (int a : alloc) {
-            file << a << " ";
+        file << resources.size() << endl;
+        for (const auto& res : resources) {
+            file << res.get_id() << " ";
+            file << res.get_name() << " ";
+            file << res.get_total() << " ";
+            file << res.get_available() << endl;
         }
 
-        file << proc.is_done() << endl;
+        file << processes.size() << endl;
+        for (const auto& proc : processes) {
+            file << proc.get_id() << " ";
+            file << proc.get_name() << " ";
+
+            const auto& max_req = proc.get_max_require();
+            file << max_req.size() << " ";
+            for (size_t i = 0; i < max_req.size(); ++i) {
+                file << max_req[i];
+                if (i < max_req.size() - 1) file << " ";
+            }
+            file << " ";
+
+            const auto& alloc = proc.get_alloc();
+            file << alloc.size() << " ";
+            for (size_t i = 0; i < alloc.size(); ++i) {
+                file << alloc[i];
+                if (i < alloc.size() - 1) file << " ";
+            }
+            file << " ";
+
+            file << (proc.is_done() ? 1 : 0) << endl;
+        }
+
+        file.flush(); 
+    }
+    catch (...) {
+        cout << "Error saving game to file: " << filename << endl;
     }
 }
 
@@ -292,61 +288,117 @@ bool GameState::load_from_file(const string& filename) {
     ifstream file(filename);
     if (!file) return false;
 
-    file >> level >> session_wins >> session_losses;
+    try {
+        file >> level >> wins >> losses;
 
-    int avail_size;
-    file >> avail_size;
-    available.resize(avail_size);
-    for (int i = 0; i < avail_size; ++i) {
-        file >> available[i];
-    }
-
-    int proc_count, res_count;
-    file >> proc_count >> res_count;
-    allocation.resize(proc_count, vector<int>(res_count));
-    for (int i = 0; i < proc_count; ++i) {
-        for (int j = 0; j < res_count; ++j) {
-            file >> allocation[i][j];
+        int avail_size;
+        file >> avail_size;
+        if (avail_size <= 0 || avail_size > 10) { 
+            return false;
         }
-    }
 
-    int res_size;
-    file >> res_size;
-    resources.clear();
-    for (int i = 0; i < res_size; ++i) {
-        int id, total, avail;
-        string name;
-        file >> id >> name >> total >> avail;
-        Resource res(id, name, total);
-        res.set_available(avail);
-        resources.push_back(res);
-    }
-    int proc_size;
-    file >> proc_size;
-    processes.clear();
-    for (int i = 0; i < proc_size; ++i) {
-        int id, max_size, alloc_size;
-        string name;
-        bool done;
-        file >> id >> name;
-        file >> max_size;
-        vector<int> max_req(max_size);
-        for (int j = 0; j < max_size; ++j) {
-            file >> max_req[j];
+        available.clear();
+        available.resize(avail_size);
+        for (int i = 0; i < avail_size; ++i) {
+            file >> available[i];
+            if (available[i] < 0) return false; 
         }
-        file >> alloc_size;
-        vector<int> alloc(alloc_size);
-        for (int j = 0; j < alloc_size; ++j) {
-            file >> alloc[j];
-        }
-        file >> done;
-        Process proc(id, name, max_req);
-        proc.set_alloc(alloc);
-        proc.set_done(done);
-        processes.push_back(proc);
-    }
 
-    return true;
+        int proc_count, res_count;
+        file >> proc_count >> res_count;
+
+        if (proc_count <= 0 || proc_count > 10 || res_count <= 0 || res_count > 10) {
+            return false;
+        }
+        if (res_count != avail_size) {
+            return false;
+        }
+
+        allocation.clear();
+        allocation.resize(proc_count, vector<int>(res_count, 0));
+
+        for (int i = 0; i < proc_count; ++i) {
+            for (int j = 0; j < res_count; ++j) {
+                file >> allocation[i][j];
+                if (allocation[i][j] < 0) return false;
+            }
+        }
+
+        int res_size;
+        file >> res_size;
+        if (res_size != res_count) return false;
+
+        resources.clear();
+        resources.reserve(res_size);
+
+        for (int i = 0; i < res_size; ++i) {
+            int id, total, avail;
+            string name;
+            file >> id >> name >> total >> avail;
+            if (total < 0 || avail < 0 || avail > total) {
+                return false;
+            }
+
+            Resource res(id, name, total);
+            res.set_available(avail);
+            resources.push_back(res);
+        }
+
+        int proc_size;
+        file >> proc_size;
+        if (proc_size != proc_count) return false;
+
+        processes.clear();
+        processes.reserve(proc_size);
+
+        for (int i = 0; i < proc_size; ++i) {
+            int id, max_size, alloc_size;
+            string name;
+            bool done;
+
+            file >> id >> name;
+            file >> max_size;
+
+            if (max_size != res_count) return false; 
+
+            vector<int> max_req(max_size);
+            for (int j = 0; j < max_size; ++j) {
+                file >> max_req[j];
+                if (max_req[j] < 0) return false;
+            }
+
+            file >> alloc_size;
+            if (alloc_size != res_count) return false; 
+
+            vector<int> alloc(alloc_size);
+            for (int j = 0; j < alloc_size; ++j) {
+                file >> alloc[j];
+                if (alloc[j] < 0) return false;
+            }
+
+            file >> done;
+            Process proc(id, name, max_req);
+            proc.set_alloc(alloc);
+            proc.set_done(done);
+            processes.push_back(proc);
+        }
+        if (processes.size() != allocation.size()) {
+            return false;
+        }
+
+        for (size_t i = 0; i < processes.size(); ++i) {
+            if (processes[i].get_max_require().size() != resources.size() ||
+                processes[i].get_alloc().size() != resources.size() ||
+                allocation[i].size() != resources.size()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
 }
 
 void GameState::set_player(const string& name) {
@@ -404,18 +456,30 @@ vector<tuple<string, int, int, int>> GameState::get_all_stats() const {
         });
     return stats;
 }
+int GameState::get_wins() const {
+    if (!player_name.empty() && rating.find(player_name) != rating.end()) {
+        return rating.at(player_name)[0]; 
+    }
+    return session_wins; 
+}
 
+int GameState::get_losses() const {
+    if (!player_name.empty() && rating.find(player_name) != rating.end()) {
+        return rating.at(player_name)[1]; 
+    }
+    return session_losses; 
+}
 void GameState::add_win() {
-    session_wins++; // Увеличиваем сессионные победы
+    session_wins++; 
     if (!player_name.empty()) {
-        rating[player_name][0]++; // Увеличиваем глобальные победы
+        rating[player_name][0]++; 
     }
 }
 
 void GameState::add_loss() {
-    session_losses++; // Увеличиваем сессионные поражения
+    session_losses++; 
     if (!player_name.empty()) {
-        rating[player_name][1]++; // Увеличиваем глобальные поражения
+        rating[player_name][1]++; 
     }
 }
 
