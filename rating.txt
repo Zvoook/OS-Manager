@@ -1,0 +1,4 @@
+Admin 4 0 4
+Dmitry 2 1 3
+Goga 0 0 1
+Sobaka sutulaya 0 0 1
