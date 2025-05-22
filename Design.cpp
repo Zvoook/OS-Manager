@@ -28,7 +28,7 @@ void Frame::setPosition(const Vector2f& p) {
     border.setPosition(p);
 }
 
-Button::Button(const Font& font, const String& tite, float s) : isHovered(false), isActive(false)
+Button::Button(const Font& font, const String& tite, float s) : isHovered(false), isActive(false), can_activate(true)
 {
     border.setFillColor(yellow);
     border.setOutlineThickness(2.f);
@@ -39,31 +39,57 @@ Button::Button(const Font& font, const String& tite, float s) : isHovered(false)
     text.setFillColor(black);
 }
 void Button::hover(bool x, bool t) {
+    // Сохраняем предыдущее состояние
+    bool prev_hovered = isHovered;
+
+    // Hover работает только для активных кнопок
+    if (!can_activate) {
+        isHovered = false;
+        // Не меняем цвет если кнопка неактивна
+        return;
+    }
+
     isHovered = x;
-    if (isHovered) {
-        if (t) {
-            border.setFillColor(darkGreen);
-            text.setFillColor(white);
+    // Меняем цвет только если состояние изменилось
+    if (isHovered != prev_hovered) {
+        if (isHovered) {
+            if (t) {
+                border.setFillColor(darkGreen);
+                text.setFillColor(white);
+            }
+            else {
+                border.setFillColor(darkRed);
+                text.setFillColor(white);
+            }
         }
         else {
-            border.setFillColor(darkRed);
-            text.setFillColor(white);
+            border.setFillColor(yellow);
+            text.setFillColor(black);
         }
-    }
-    else {
-        border.setFillColor(yellow);
-        text.setFillColor(black);
     }
 }
 void Button::hover(bool x) {
-    isHovered = x;
-    if (isHovered) {
-        border.setOutlineColor(white);
-        text.setFillColor(white);
+    // Сохраняем предыдущее состояние
+    bool prev_hovered = isHovered;
+
+    // Hover работает только для активных кнопок
+    if (!can_activate) {
+        isHovered = false;
+        // Не меняем цвет если кнопка неактивна
+        return;
     }
-    else {
-        border.setOutlineColor(black);
-        text.setFillColor(black);
+
+    isHovered = x;
+    // Меняем цвет только если состояние изменилось
+    if (isHovered != prev_hovered) {
+        if (isHovered) {
+            border.setOutlineColor(white);
+            text.setFillColor(white);
+        }
+        else {
+            border.setOutlineColor(black);
+            text.setFillColor(black);
+        }
     }
 }
 void Button::activate(bool x) {
@@ -136,6 +162,13 @@ void LevelDesign::draw(RenderWindow& w) {
     deny.draw(w, RenderStates::Default);
     go_menu.draw(w, RenderStates::Default);
 }
+void LevelDesign::resetButtonsActive() {
+    grant.release_activate();
+    deny.release_activate();
+    go_menu.release_activate();
+}
+
+
 void LevelDesign::setElemColor(const string& name, const Color& Col1, const Color& Col2) {
     if (name == "main") main.setColor(Col1, Col2);
     else if (name == "frames") {
@@ -203,10 +236,10 @@ void Input::handleEvent(const Event& event)
         if (event.text.unicode == '\b') {
             if (!content.empty()) content.pop_back();
         }
-        // Разрешаем все печатаемые символы Unicode
         else if (event.text.unicode >= 32) {
-            content += (wchar_t)(event.text.unicode);
+            content += static_cast<wchar_t>(event.text.unicode);
         }
+
         text.setString(content);
     }
 }
@@ -221,7 +254,15 @@ void Input::hide_help()
     text.setFillColor(black);
     text.setString("");
 }
-
+std::string Input::get_content() const {
+    std::string result;
+    for (size_t i = 0; i < content.size(); i++) {
+        wchar_t ch = content[i];
+        // Простое приведение типов
+        result += static_cast<char>(ch % 256);
+    }
+    return result;
+}
 Menu::Menu(const Font& font)
 {
     background.setFillColor(lightBlue);
@@ -285,36 +326,24 @@ void Menu::draw(RenderWindow& w) {
 }
 void Menu::upd_buttons(int i)
 {
-    if (!i) {
-        l1.setColor(darkGray, black); l1.set_can_activate(false);
-        l2.setColor(darkGray, black); l2.set_can_activate(false);
-        l3.setColor(darkGray, black); l3.set_can_activate(false);
-        l4.setColor(darkGray, black); l4.set_can_activate(false);
-    }
-    else if (i == 1) {
-        l1.setColor(lightBlue, black); l1.set_can_activate(true);
-        l2.setColor(darkGray, black); l2.set_can_activate(false);
-        l3.setColor(darkGray, black); l3.set_can_activate(false);
-        l4.setColor(darkGray, black); l4.set_can_activate(false);
-    }
-    else if (i == 2) {
-        l1.setColor(lightBlue, black); l1.set_can_activate(true);
-        l2.setColor(lightGreen, black); l2.set_can_activate(true);
-        l3.setColor(darkGray, black); l3.set_can_activate(false);
-        l4.setColor(darkGray, black); l4.set_can_activate(false);
-    }
-    else if (i == 3) {
-        l1.setColor(lightBlue, black); l1.set_can_activate(true);
-        l2.setColor(lightGreen, black); l2.set_can_activate(true);
-        l3.setColor(lightOrange, black); l3.set_can_activate(true);
-        l4.setColor(darkGray, black); l4.set_can_activate(false);
-    }
-    else if (i == 4) {
-        l1.setColor(lightBlue, black); l1.set_can_activate(true);
-        l2.setColor(lightGreen, black); l2.set_can_activate(true);
-        l3.setColor(lightOrange, black); l3.set_can_activate(true);
-        l4.setColor(lightRed, black); l4.set_can_activate(true);
-    }
+    // Сначала деактивируем все кнопки уровней
+    l1.setColor(darkGray, black); l1.set_can_activate(false);
+    l2.setColor(darkGray, black); l2.set_can_activate(false);
+    l3.setColor(darkGray, black); l3.set_can_activate(false);
+    l4.setColor(darkGray, black); l4.set_can_activate(false);
+    stats.setColor(yellow, black); stats.set_can_activate(true);
+    if (i >= 1) l1.setColor(lightBlue, black); l1.set_can_activate(true);
+    if (i >= 2) l2.setColor(lightGreen, black); l2.set_can_activate(true);
+    if (i >= 3) l3.setColor(lightOrange, black); l3.set_can_activate(true);
+    if (i >= 4) l4.setColor(lightRed, black); l4.set_can_activate(true);
+}
+// В класс Menu  
+void Menu::resetButtonsActive() {
+    l1.release_activate();
+    l2.release_activate();
+    l3.release_activate();
+    l4.release_activate();
+    stats.release_activate();
 }
 int Menu::interactive(const Vector2f& mousePos, bool click)
 {
@@ -324,8 +353,12 @@ int Menu::interactive(const Vector2f& mousePos, bool click)
     bool s4 = l4.contains(mousePos);
     bool m = stats.contains(mousePos);
 
-    l1.hover(s1); l2.hover(s2);
-    l3.hover(s3); l4.hover(s4); stats.hover(m);
+    // Hover только для активных кнопок
+    l1.hover(s1 && l1.get_can_activate());
+    l2.hover(s2 && l2.get_can_activate());
+    l3.hover(s3 && l3.get_can_activate());
+    l4.hover(s4 && l4.get_can_activate());
+    stats.hover(m && stats.get_can_activate());
 
     if (click) {
         if (s1 && l1.get_can_activate()) return 1;
@@ -338,9 +371,7 @@ int Menu::interactive(const Vector2f& mousePos, bool click)
 }
 void Menu::handle(const Event& event)
 {
-    upd_buttons(!input.is_empty());
     input.handleEvent(event);
-    upd_buttons(!input.is_empty() * 4);
 }
 
 
@@ -349,12 +380,26 @@ Statistics::Statistics(const Font& font)
     background.setFillColor(lightBlue);
     background.setSize(Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
 
-
     main = Frame(font, "STATISTICS", 80);
     main.setPosition(Vector2f(MAIN_X, MAIN_Y));
     main.setSize(Vector2f(MAIN_WIDTH, MAIN_HEIGHT));
-    main.setTextPos(SCREEN_WIDTH / 3.4, MAIN_Y + 10);
+    // Исправляем позицию заголовка - центрируем по горизонтали
+    main.setTextPos(SCREEN_WIDTH / 2 - 200, MAIN_Y + 10);
     main.setColor(white, black);
+
+    // Добавляем рамку для таблицы статистики
+    stats_frame = Frame(font, "LEADERBOARD", 22);
+    stats_frame.setPosition(Vector2f(60, 140));
+    stats_frame.setSize(Vector2f(900, 480));
+    // Центрируем заголовок "LEADERBOARD"
+    stats_frame.setTextPos(SCREEN_WIDTH / 2 - 80, 150);
+    stats_frame.setColor(yellow, black);
+
+    // Рамка для заголовка таблицы
+    header_frame = Frame(font, "", 18);
+    header_frame.setPosition(Vector2f(80, 190));
+    header_frame.setSize(Vector2f(860, 40));
+    header_frame.setColor(lightGreen, black);
 
     go_menu = Button(font, "MENU", 24);
     go_menu.setPosition(Vector2f(MENU_BUTTON_X, MENU_BUTTON_Y));
@@ -364,6 +409,8 @@ Statistics::Statistics(const Font& font)
 void Statistics::draw(RenderWindow& w) {
     w.draw(background);
     main.draw(w, RenderStates::Default);
+    stats_frame.draw(w, RenderStates::Default);
+    header_frame.draw(w, RenderStates::Default);
     go_menu.draw(w, RenderStates::Default);
 }
 int Statistics::interactive(const Vector2f& mousePos, bool cl)

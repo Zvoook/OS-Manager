@@ -1,11 +1,13 @@
 ﻿#include <SFML/Graphics.hpp>
 #include <iostream>
 #include <ctime>
+#include <fstream>
+#include <string>
 #include "Constants.h"
 #include "GameState.h"
 #include "Design.h"
 using namespace sf;
-
+using namespace std;
 
 string fix_str(const string& text, int width)
 {
@@ -13,10 +15,12 @@ string fix_str(const string& text, int width)
         return text.substr(0, width - 1) + "~";
     return text + string(width - text.length(), ' ');
 }
+
 void updateStatistic(Text& t, const GameState& g)
 {
     t.setString("Level: " + to_string(g.get_lvl()) + "   Wins: " + to_string(g.get_wins()) + "   Losses: " + to_string(g.get_losses()));
 }
+
 Text create_res_text(int row, const Resource& r, Font& f)
 {
     Text t("", f, 24);
@@ -29,9 +33,9 @@ Text create_res_text(int row, const Resource& r, Font& f)
         FRAME_Y_RES + RES_OFFSET + row * RES_STEP);
     return t;
 }
+
 Text create_proc_text(int row, int resCnt, const Process& p, Font& f)
 {
-
     Text t("", f, 24);
     t.setFillColor(black);
     string line = fix_str(p.get_name(), PROC_NAME_WIDTH);
@@ -48,6 +52,7 @@ Text create_proc_text(int row, int resCnt, const Process& p, Font& f)
         FRAME_Y_PROC + PROC_OFFSET + row * PROC_STEP);
     return t;
 }
+
 Text makeHeader(const vector<string>& names, Font& f, int c)
 {
     Text h("", f, 22);
@@ -64,6 +69,7 @@ Text makeHeader(const vector<string>& names, Font& f, int c)
     h.setPosition(FRAME_X_PROC + 48.5, FRAME_Y_PROC + PROC_OFFSET - 25);
     return h;
 }
+
 void wait(int sec) {
     Clock time;
     while (time.getElapsedTime().asSeconds() < sec) {};
@@ -71,6 +77,8 @@ void wait(int sec) {
 
 int main()
 {
+    
+
     srand(time(0));
     Font font;
     Image icon;
@@ -79,6 +87,7 @@ int main()
 
     wins stat = menu_win;
     bool need_to_wait = false;
+    bool buttons_updated = false; // Флаг для предотвращения частого обновления
 
     vector<float> coeff = { 0.95f, 0.7f, 0.5f, 0.35f };
     int proc_cnt[] = { 3, 4, 5, 6 };
@@ -97,7 +106,8 @@ int main()
     Menu menu(font);
     Statistics statistics(font);
 
-    int opened_levels = 4;
+    // Загружаем рейтинг из файла при запуске программы
+    game.load_rating("rating.txt");
 
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
     ui.reconstruct(game.get_lvl());
@@ -112,14 +122,17 @@ int main()
     // Информация о сохранении/загрузке
     Text save_info("Press S to save game, L to load game", font, 16);
     save_info.setFillColor(black);
-    save_info.setPosition(SCREEN_WIDTH - 300, SCREEN_HEIGHT - 30);
+    save_info.setOrigin(save_info.getLocalBounds().width / 2, 0);
+    save_info.setPosition(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30);
+
+    // Инициализируем кнопки меню
+    menu.upd_buttons(0); // Начальное состояние - никто не зарегистрирован
 
     Vector2f mouse;
     bool waiting = false;
     tuple<int, int, int> req{ -1,-1,-1 };
     Clock clock;
     float last = 0;  int interval = rand() % 4;
-
 
     while (window.isOpen())
     {
@@ -133,16 +146,27 @@ int main()
             if (event.type == Event::MouseMoved)
                 mouse = { float(event.mouseMove.x), float(event.mouseMove.y) };
 
+            // Обработка событий отпускания кнопки мыши для сброса активации кнопок
+            if (event.type == Event::MouseButtonReleased) {
+                if (stat == level_win) {
+                    ui.resetButtonsActive();
+                }
+                else if (stat == menu_win) {
+                    menu.resetButtonsActive();
+                }
+                else if (stat == statistic_win) {
+                    statistics.resetButtonsActive();
+                }
+            }
+
             // Обработка клавиш S и L для сохранения и загрузки
             if (event.type == Event::KeyPressed) {
-                if (stat == level_win) {  // Сохранение/загрузка работает только на экране уровня
+                if (stat == level_win) {
                     if (event.key.code == Keyboard::S) {
-                        // Сохранение игры
                         game.save_to_file("save.txt");
                         info.setString("Game saved to save.txt");
                     }
                     else if (event.key.code == Keyboard::L) {
-                        // Загрузка игры
                         if (game.load_from_file("save.txt")) {
                             info.setString("Game loaded from save.txt");
                             ui.reconstruct(game.get_lvl());
@@ -154,95 +178,216 @@ int main()
                         }
                     }
                 }
+
+                // Проверка ввода имени и нажатия Enter в меню
+                if (stat == menu_win && event.key.code == Keyboard::Enter) {
+                    string name = menu.get_name();
+                    if (!name.empty() && !game.has_player()) {
+                        game.set_player(name);
+                        game.save_rating("rating.txt");
+                        // Обновляем доступные уровни для этого игрока ОДИН РАЗ
+                        menu.upd_buttons(game.get_max_available_level());
+                        buttons_updated = true;
+                    }
+                }
             }
 
             if (stat == menu_win) {
+                // Обработка событий ввода в меню
                 menu.handle(event);
-                if (menu.text_entered()) menu.upd_buttons(opened_levels);
-                if (event.type == Event::MouseButtonPressed)
-                {
+
+                // Обработка кликов по кнопкам в меню
+                if (event.type == Event::MouseButtonPressed) {
                     int state = menu.interactive(mouse, true);
-                    if (state && state != 5) {
-                        stat = level_win;
-                        game.set_level(state);
-                        game.init_level(all_proc, res_names, proc_cnt, res_cnt, coeff, state);
-                        ui.reconstruct(game.get_lvl());
-                        int cur_proc_count = START_PROC_COUNT + game.get_lvl() - 1;
-                        header = makeHeader(res_names, font, cur_proc_count);
+                    if (state > 0 && state < 5 && game.has_player()) {
+                        // Проверяем, доступен ли выбранный уровень
+                        if (state <= game.get_max_available_level()) {
+                            stat = level_win;
+                            game.set_level(state);
+                            game.init_level(all_proc, res_names, proc_cnt, res_cnt, coeff, state);
+                            ui.reconstruct(game.get_lvl());
+                            header = makeHeader(res_names, font, game.get_vec_res().size());
+                        }
                     }
-                    else if (state == 5) stat = statistic_win;
+                    else if (state == 5) { // Кнопка статистики - теперь всегда доступна
+                        stat = statistic_win;
+                    }
                 }
-                window.clear(white);
-                menu.draw(window);
-                window.draw(menu_info);
-                window.display();
+                else {
+                    // Обработка наведения без клика
+                    menu.interactive(mouse, false);
+                }
             }
             else if (stat == level_win) {
-                if (clock.getElapsedTime().asSeconds() - last >= interval)
-                {
+                // Управление игровым процессом
+                if (clock.getElapsedTime().asSeconds() - last >= interval) {
                     last = clock.getElapsedTime().asSeconds();
                     interval = rand() % 4;
-                    if (!waiting)
-                    {
+                    if (!waiting) {
                         req = game.create_random_request();
                         auto [pid, rid, amt] = req;
-                        if (pid >= 0)
-                        {
+                        if (pid >= 0) {
                             waiting = true;
                             info.setString(proc_names[pid] + " requests " +
                                 to_string(amt) + " of " + res_names[rid]);
                         }
                     }
                 }
-                if (event.type == Event::MouseButtonPressed)
-                {
+
+                // Обработка кликов по кнопкам в игре
+                if (event.type == Event::MouseButtonPressed) {
                     int state = ui.interactive(mouse, true);
-                    if (state == 2) stat = menu_win;
-                    else if (state && waiting)
-                    {
+                    if (state == 2) {
+                        stat = menu_win;
+                        buttons_updated = false; // Сбрасываем флаг при возврате в меню
+                    }
+                    else if (state && waiting) {
                         auto [pid, rid, amt] = req;
                         info.setString(state == 1 ? game.action_result(pid, rid, amt) : "Request denied");
                         if (info.getString() == "Resource successful granted\n\nPROCESS COMPLETED") {
-                            if (game.is_lvl_passed()) info.setString("LEVEL COMPLETED");
-                            /*wait(3);*/
+                            if (game.is_lvl_passed()) {
+                                info.setString("LEVEL COMPLETED");
+                                // Обновляем статистику - добавляем победу и обновляем максимальный уровень
+                                game.add_win();
+                                game.update_max_level(game.get_lvl());
+                                game.save_rating("rating.txt");
+                            }
                         }
                         else if (info.getString() == "You face to deadlock\n\nGAME OVER") {
-                            /*wait(3);*/
+                            // Обновляем статистику - добавляем поражение
+                            game.add_loss();
+                            game.save_rating("rating.txt");
                             game.init_level(all_proc, res_names, proc_cnt, res_cnt, coeff, game.get_lvl());
                         }
-                        // Сбрасываем флаг waiting после обработки запроса
                         waiting = false;
                     }
                 }
-                else ui.interactive(mouse, false);
-
-
-                window.clear(white);
-                ui.draw(window);
-                updateStatistic(stats, game);
-                window.draw(stats);
-                window.draw(info);
-                window.draw(header);
-                window.draw(save_info);  // Отображаем информацию о сохранении/загрузке
-                int row = 0;
-                for (const auto& r : game.get_vec_res())
-                    window.draw(create_res_text(row++, r, font));
-                row = 0;
-                for (const auto& p : game.get_vec_pr())
-                    window.draw(create_proc_text(row++, game.get_vec_res().size(), p, font));
-                window.display();
+                else {
+                    ui.interactive(mouse, false);
+                }
             }
             else if (stat == statistic_win) {
-                if (event.type == Event::MouseButtonPressed)
-                {
+                if (event.type == Event::MouseButtonPressed) {
                     int state = statistics.interactive(mouse, true);
-                    if (state) stat = menu_win;
+                    if (state) {
+                        stat = menu_win;
+                        buttons_updated = false; // Сбрасываем флаг при возврате в меню
+                    }
                 }
-                window.clear(white);
-                statistics.draw(window);
-                window.display();
+                else {
+                    statistics.interactive(mouse, false);
+                }
             }
         }
+
+        // Отрисовка окна в зависимости от текущего состояния
+        window.clear(white);
+
+        if (stat == menu_win) {
+            menu.draw(window);
+            window.draw(menu_info);
+
+            // Обновляем кнопки только при необходимости
+            if (!buttons_updated) {
+                if (game.has_player()) {
+                    menu.upd_buttons(game.get_max_available_level());
+                }
+                else {
+                    menu.upd_buttons(0); // Никакие уровни не доступны без игрока
+                }
+                buttons_updated = true;
+            }
+        }
+        else if (stat == level_win) {
+            ui.draw(window);
+            updateStatistic(stats, game);
+            window.draw(stats);
+            window.draw(info);
+            window.draw(header);
+            window.draw(save_info);
+
+            int row = 0;
+            for (const auto& r : game.get_vec_res())
+                window.draw(create_res_text(row++, r, font));
+
+            row = 0;
+            for (const auto& p : game.get_vec_pr())
+                window.draw(create_proc_text(row++, game.get_vec_res().size(), p, font));
+        }
+        else if (stat == statistic_win) {
+            statistics.draw(window);
+
+            auto all_stats = game.get_all_stats();
+
+            // Красивый заголовок таблицы
+            Text stat_header("RANK    PLAYER           WINS    LOSSES    MAX LEVEL", font, 20);
+            stat_header.setPosition(100, 200);
+            stat_header.setFillColor(black);
+            stat_header.setStyle(Text::Bold);
+            window.draw(stat_header);
+
+            // Линия под заголовком
+            RectangleShape line(Vector2f(820, 2));
+            line.setPosition(100, 225);
+            line.setFillColor(black);
+            window.draw(line);
+
+            // Отображение статистики с красивым форматированием
+            float y_pos = 240.0f;
+            int rank = 1;
+
+            for (const auto& stat_item : all_stats) {
+                string player_name = std::get<0>(stat_item);
+                int wins = std::get<1>(stat_item);
+                int losses = std::get<2>(stat_item);
+                int level = std::get<3>(stat_item);
+
+                // Цвет строки в зависимости от ранга
+                Color row_color = black;
+                if (rank == 1) row_color = Color(255, 215, 0); // Золотой
+                else if (rank == 2) row_color = Color(192, 192, 192); // Серебряный
+                else if (rank == 3) row_color = Color(205, 127, 50); // Бронзовый
+
+                // Форматируем строку с фиксированной шириной
+                string rank_str = (rank < 10 ? " " : "") + to_string(rank) + ".";
+                string stat_line = fix_str(rank_str, 6) + "  " +
+                    fix_str(player_name, 15) + "  " +
+                    fix_str(to_string(wins), 8) + "  " +
+                    fix_str(to_string(losses), 8) + "    " +
+                    to_string(level);
+
+                Text player_stat(stat_line, font, 18);
+                player_stat.setPosition(100, y_pos);
+                player_stat.setFillColor(row_color);
+                if (rank <= 3) player_stat.setStyle(Text::Bold);
+
+                // Рамка для топ-3 игроков
+                if (rank <= 3) {
+                    RectangleShape row_bg(Vector2f(820, 25));
+                    row_bg.setPosition(90, y_pos - 2);
+                    row_bg.setFillColor(Color(row_color.r, row_color.g, row_color.b, 30));
+                    window.draw(row_bg);
+                }
+
+                window.draw(player_stat);
+
+                y_pos += 30.0f;
+                rank++;
+
+                // Ограничиваем количество отображаемых игроков
+                if (y_pos > SCREEN_HEIGHT - 120) break;
+            }
+
+            // Если нет статистики
+            if (all_stats.empty()) {
+                Text no_stats("No players yet! Start playing to see statistics.", font, 24);
+                no_stats.setPosition(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2);
+                no_stats.setFillColor(black);
+                window.draw(no_stats);
+            }
+        }
+
+        window.display();
     }
     return 0;
 }

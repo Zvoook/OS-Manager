@@ -4,9 +4,16 @@
 #include <vector>
 #include <string>
 #include <random>
+#include <map>
+#include <array>
+#include <fstream>
+#include <algorithm>
 
 class GameState {
 private:
+    std::string player_name;
+    std::map<std::string, std::array<int, 3>> rating; // [победы, поражения, макс_уровень]
+
     vector<Process> processes;
     vector<Resource> resources;
     vector<vector<int>> allocation;
@@ -25,7 +32,6 @@ public:
     bool is_lvl_passed() const;
     tuple<int, int, int> create_random_request();
     void set_level(int i) { level = i; }
-    //void set_manual(const vector<Resource>& res, const vector<Process>& procs, int count);
     void release_finished();
     bool make_request(int proc_id, int res_id, int k);
 
@@ -40,4 +46,18 @@ public:
 
     void save_to_file(const string& filename) const;
     bool load_from_file(const string& filename);
+
+    // Методы для работы с игроком и статистикой
+    void set_player(const string& name);
+    void save_rating(const string& path) const;
+    void load_rating(const string& path);
+    vector<tuple<string, int, int, int>> get_all_stats() const;
+    void add_win();
+    void add_loss();
+    void update_max_level(int lvl);
+
+    // Новые методы для работы с доступными уровнями
+    int get_max_available_level() const;
+    bool has_player() const { return !player_name.empty(); }
+    string get_player_name() const { return player_name; }
 };

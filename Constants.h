@@ -92,3 +92,14 @@ const double  RES_NAME_WIDTH = 7;
 const double  PROC_NAME_WIDTH = 15;
 const double  CELL_WIDTH = 7;
 inline const std::string SEP = "  ";
+
+// ────────── блок «STATISTICS» ──────────
+const float STATS_FRAME_WIDTH = 900.f;
+const float STATS_FRAME_HEIGHT = 480.f;
+const float STATS_FRAME_X = 60.f;
+const float STATS_FRAME_Y = 140.f;
+
+const float HEADER_FRAME_WIDTH = 860.f;
+const float HEADER_FRAME_HEIGHT = 40.f;
+const float HEADER_FRAME_X = 80.f;
+const float HEADER_FRAME_Y = 190.f;
