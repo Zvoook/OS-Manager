@@ -29,7 +29,6 @@ void updateStatistic(Text& t, const GameState& g)
     }
     t.setString(stat_text);
 }
-
 Text create_res_text(int row, const Resource& r, Font& f)
 {
     Text t("", f, 24);
@@ -169,9 +168,6 @@ int main()
                         info.setString("Game saved to save.txt");
                     }
                     else if (event.key.code == Keyboard::L) {
-                        // Сохраняем текущее состояние на случай неудачной загрузки
-                        int old_level = game.get_lvl();
-
                         if (game.load_from_file("save.txt")) {
                             info.setString("Game loaded from save.txt");
                             ui.reconstruct(game.get_lvl());
@@ -179,11 +175,7 @@ int main()
                             header = makeHeader(res_names, font, cur_res_count);
                         }
                         else {
-                            info.setString("Failed to load game! File corrupted or incompatible.");
-                            // Восстанавливаем состояние игры
-                            game.init_level(all_proc, res_names, proc_cnt, res_cnt, coeff, old_level);
-                            ui.reconstruct(game.get_lvl());
-                            header = makeHeader(res_names, font, game.get_vec_res().size());
+                            info.setString("Failed to load game!");
                         }
                     }
                 }
