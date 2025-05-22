@@ -25,7 +25,7 @@ Text create_res_text(int row, const Resource& r, Font& f)
 {
     Text t("", f, 24);
     t.setFillColor(black);
-    string line = fix_str(r.get_name(), RES_NAME_WIDTH) + SEP +
+    string line = " " + fix_str(r.get_name(), RES_NAME_WIDTH) + SEP + " " +
         fix_str(to_string(r.get_available()) + "/" +
             to_string(r.get_total()), CELL_WIDTH);
     t.setString(line);
