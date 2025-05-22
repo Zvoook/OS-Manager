@@ -384,7 +384,7 @@ Statistics::Statistics(const Font& font)
     main.setPosition(Vector2f(MAIN_X, MAIN_Y));
     main.setSize(Vector2f(MAIN_WIDTH, MAIN_HEIGHT));
     // Исправляем позицию заголовка - центрируем по горизонтали
-    main.setTextPos(SCREEN_WIDTH / 2 - 200, MAIN_Y + 10);
+    main.setTextPos(SCREEN_WIDTH / 4, MAIN_Y + 10);
     main.setColor(white, black);
 
     // Добавляем рамку для таблицы статистики
@@ -419,38 +419,3 @@ int Statistics::interactive(const Vector2f& mousePos, bool cl)
     if (cl) go_menu.activate(go_menu.get_hovered());
     return go_menu.get_hovered();
 }
-
-//Interface::Interface(const Font& font)
-//{
-//    stats = Text("", font, 20);  stats.setFillColor(black); stats.setPosition(57, 70);
-//    info = Text("", font, 21);  info.setFillColor(black); info.setPosition(430, 160);
-//    menu_info = Text("It's the OS operator game. This game simulate actual OS working.\nYou should grant or deny requests from processes and avoid deadlock.", font, 19); menu_info.setFillColor(black); menu_info.setPosition(Vector2f(INFO_X + 30, INFO_Y + 70));
-//}
-//int Interface::interactive(wins window, const Vector2f& mousePos, bool click)
-//{
-//    {
-//        switch (window) {
-//        case menu_win: return menu.interactive(mousePos, click);
-//        case statistic_win: return statistics.interactive(mousePos, click);
-//        case level_win: return level.interactive(mousePos, click);
-//        }
-//    }
-//}
-//void Interface::updateStatistic(const GameState& g)
-//{
-//    stats.setString("Level: " + to_string(g.get_lvl()) + "   Wins: " + to_string(g.get_wins()) + "   Losses: " + to_string(g.get_losses()));
-//}
-//void Interface::draw(wins window, RenderWindow& w)
-//{
-//    {
-//        switch (window) {
-//        case menu_win: {
-//            menu.draw(w); break;
-//        }
-//        case statistic_win: {
-//            statistics.draw(w); break;
-//        }
-//        case level_win: { level.draw(w); break; }
-//        }
-//    }
-//}

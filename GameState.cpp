@@ -6,6 +6,9 @@
 #include <tuple>
 
 void GameState::init_level(vector<Process>& pr, vector<string>& res_names, int pr_cnt[], int res_cnt[], vector<float>& coeff, int l) {
+    // ДОБАВЛЕНО: Устанавливаем флаг переключения
+    level_switching = true;
+
     level = l;
     processes.clear();
     resources.clear();
@@ -55,6 +58,9 @@ void GameState::init_level(vector<Process>& pr, vector<string>& res_names, int p
         available.push_back(total);
     }
     allocation.assign(safe_count, vector<int>(r_count, 0));
+
+    // ДОБАВЛЕНО: Снимаем флаг переключения ТОЛЬКО в конце
+    level_switching = false;
 }
 
 bool GameState::is_lvl_passed() const {
@@ -142,19 +148,46 @@ bool GameState::deadlock_detect() {
 }
 
 tuple<int, int, int> GameState::create_random_request() {
+    // ИСПРАВЛЕНО: Простая проверка - если переключаем уровень, не генерируем запросы
+    if (level_switching || processes.empty()) {
+        return { -1, -1, -1 };
+    }
+
     int p_size = processes.size();
+
+    // ДОБАВЛЕНО: Дополнительная защита от некорректного размера
+    if (p_size <= 0) {
+        return { -1, -1, -1 };
+    }
+
     int tries = 20;
 
     while (tries--) {
+        // ДОБАВЛЕНО: Повторная проверка состояния на каждой итерации
+        if (level_switching || processes.empty() || processes.size() != p_size) {
+            return { -1, -1, -1 };
+        }
+
         int pid = rand() % p_size;
+
+        // ДОБАВЛЕНО: Дополнительная проверка границ
+        if (pid >= processes.size() || pid >= p_size) {
+            continue;
+        }
+
         if (processes[pid].is_done()) continue;
 
         const auto& rest = processes[pid].get_rest();
         for (int j = 0; j < rest.size(); ++j) {
-            if (rest[j] > 0 && available[j] > 0) {
+            // ИСПРАВЛЕНО: Добавлена проверка границ для available
+            if (j < available.size() && rest[j] > 0 && available[j] > 0) {
                 int max_req = min(rest[j], available[j]);
                 int amount = 1 + rand() % max_req;
-                return { pid, j, amount };
+
+                // ДОБАВЛЕНО: Финальная проверка перед возвратом
+                if (!level_switching && pid < processes.size()) {
+                    return { pid, j, amount };
+                }
             }
         }
     }
@@ -207,22 +240,17 @@ void GameState::release_finished() {
     }
 }
 
-// Сохранение состояния игры в текстовый файл
 void GameState::save_to_file(const string& filename) const {
     ofstream file(filename);
     if (!file) return;
+    file << level << " " << session_wins << " " << session_losses << endl;
 
-    // Сохраняем базовую информацию
-    file << level << " " << wins << " " << losses << endl;
-
-    // Сохраняем доступные ресурсы
     file << available.size() << endl;
     for (int avail : available) {
         file << avail << " ";
     }
     file << endl;
 
-    // Сохраняем матрицу allocation
     file << processes.size() << " " << resources.size() << endl;
     for (const auto& row : allocation) {
         for (int val : row) {
@@ -231,7 +259,6 @@ void GameState::save_to_file(const string& filename) const {
         file << endl;
     }
 
-    // Сохраняем ресурсы
     file << resources.size() << endl;
     for (const auto& res : resources) {
         file << res.get_id() << " ";
@@ -240,41 +267,33 @@ void GameState::save_to_file(const string& filename) const {
         file << res.get_available() << endl;
     }
 
-
-    // Сохраняем процессы
     file << processes.size() << endl;
     for (const auto& proc : processes) {
         file << proc.get_id() << " ";
         file << proc.get_name() << " ";
 
-        // Сохраняем max_require
         const auto& max_req = proc.get_max_require();
         file << max_req.size() << " ";
         for (int req : max_req) {
             file << req << " ";
         }
 
-        // Сохраняем alloc
         const auto& alloc = proc.get_alloc();
         file << alloc.size() << " ";
         for (int a : alloc) {
             file << a << " ";
         }
 
-        // Сохраняем статус завершения
         file << proc.is_done() << endl;
     }
 }
 
-// Загрузка состояния игры из текстового файла
 bool GameState::load_from_file(const string& filename) {
     ifstream file(filename);
     if (!file) return false;
 
-    // Загружаем базовую информацию
-    file >> level >> wins >> losses;
+    file >> level >> session_wins >> session_losses;
 
-    // Загружаем доступные ресурсы
     int avail_size;
     file >> avail_size;
     available.resize(avail_size);
@@ -282,7 +301,6 @@ bool GameState::load_from_file(const string& filename) {
         file >> available[i];
     }
 
-    // Загружаем матрицу allocation
     int proc_count, res_count;
     file >> proc_count >> res_count;
     allocation.resize(proc_count, vector<int>(res_count));
@@ -292,7 +310,6 @@ bool GameState::load_from_file(const string& filename) {
         }
     }
 
-    // Загружаем ресурсы
     int res_size;
     file >> res_size;
     resources.clear();
@@ -304,8 +321,6 @@ bool GameState::load_from_file(const string& filename) {
         res.set_available(avail);
         resources.push_back(res);
     }
-
-    // Загружаем процессы
     int proc_size;
     file >> proc_size;
     processes.clear();
@@ -314,19 +329,16 @@ bool GameState::load_from_file(const string& filename) {
         string name;
         bool done;
         file >> id >> name;
-        // Загружаем max_require
         file >> max_size;
         vector<int> max_req(max_size);
         for (int j = 0; j < max_size; ++j) {
             file >> max_req[j];
         }
-        // Загружаем alloc
         file >> alloc_size;
         vector<int> alloc(alloc_size);
         for (int j = 0; j < alloc_size; ++j) {
             file >> alloc[j];
         }
-        // Загружаем статус завершения
         file >> done;
         Process proc(id, name, max_req);
         proc.set_alloc(alloc);
@@ -339,13 +351,11 @@ bool GameState::load_from_file(const string& filename) {
 
 void GameState::set_player(const string& name) {
     player_name = name;
-    // Если игрок новый, добавим в map
     if (rating.find(name) == rating.end())
-        rating[name] = { 0, 0, 1 }; // победы, поражения, макс. уровень (начинаем с 1)
+        rating[name] = { 0, 0, 1 };
 }
 
 void GameState::save_rating(const string& path) const {
-    // Читаем текущие данные из файла
     map<string, array<int, 3>> existing;
     ifstream infile(path);
     if (infile.is_open()) {
@@ -356,13 +366,9 @@ void GameState::save_rating(const string& path) const {
         }
         infile.close();
     }
-
-    // Обновляем или добавляем текущего игрока
     if (!player_name.empty()) {
         existing[player_name] = rating.at(player_name);
     }
-
-    // Перезаписываем весь файл
     ofstream out(path, ios::trunc);
     for (const auto& pair : existing) {
         const string& name = pair.first;
@@ -387,9 +393,8 @@ vector<tuple<string, int, int, int>> GameState::get_all_stats() const {
     for (const auto& pair : rating) {
         const string& name = pair.first;
         const array<int, 3>& data = pair.second;
-        stats.emplace_back(name, data[0], data[1], data[2]); // имя, победы, поражения, уровень
+        stats.emplace_back(name, data[0], data[1], data[2]);
     }
-    // Сортировка по уровню (по убыванию), затем по победам (по убыванию)
     sort(stats.begin(), stats.end(),
         [](const auto& a, const auto& b) {
             int level_a = get<3>(a), level_b = get<3>(b);
@@ -401,31 +406,32 @@ vector<tuple<string, int, int, int>> GameState::get_all_stats() const {
 }
 
 void GameState::add_win() {
+    session_wins++; // Увеличиваем сессионные победы
     if (!player_name.empty()) {
-        rating[player_name][0]++; 
-        wins++;
+        rating[player_name][0]++; // Увеличиваем глобальные победы
     }
 }
 
 void GameState::add_loss() {
+    session_losses++; // Увеличиваем сессионные поражения
     if (!player_name.empty()) {
-        rating[player_name][1]++; 
-        losses++;
+        rating[player_name][1]++; // Увеличиваем глобальные поражения
     }
 }
 
 void GameState::update_max_level(int lvl) {
     if (!player_name.empty()) {
-        rating[player_name][2] = max(rating[player_name][2], lvl + 1); 
+        rating[player_name][2] = max(rating[player_name][2], lvl + 1);
     }
 }
+
 int GameState::get_max_available_level() const {
     if (player_name.empty()) {
-        return 0; 
+        return 0;
     }
     auto it = rating.find(player_name);
     if (it != rating.end()) {
-        return min(4, it->second[2]); 
+        return min(4, it->second[2]);
     }
-    return 1; 
+    return 1;
 }

@@ -1,8 +1,16 @@
 #include "Process.h"
+
 vector<int> Process::get_rest() const {
     vector<int> d;
+    // ДОБАВЛЕНО: Проверка на соответствие размеров
+    if (max_require.size() != alloc.size()) {
+        // Возвращаем пустой вектор при несоответствии размеров
+        return d;
+    }
+
     for (int i = 0; i < max_require.size(); ++i) {
-        d.push_back(max_require[i] - alloc[i]);
+        // ДОБАВЛЕНО: Защита от отрицательных значений
+        d.push_back(max(0, max_require[i] - alloc[i]));
     }
     return d;
 }
