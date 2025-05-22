@@ -25,7 +25,7 @@ Text create_res_text(int row, const Resource& r, Font& f)
 {
     Text t("", f, 24);
     t.setFillColor(black);
-    string line = fix_str(r.get_name(), RES_NAME_WIDTH) + SEP +
+    string line = " " + fix_str(r.get_name(), RES_NAME_WIDTH) + SEP + " " +
         fix_str(to_string(r.get_available()) + "/" +
             to_string(r.get_total()), CELL_WIDTH);
     t.setString(line);
@@ -290,7 +290,7 @@ int main()
 
             auto all_stats = game.get_all_stats();
 
-            Text stat_header("RANK    PLAYER           WINS    LOSSES    MAX LEVEL", font, 20);
+            Text stat_header("RANK    PLAYER        WINS      LOSSES    MAX LEVEL", font, 22);
             stat_header.setPosition(100, 200);
             stat_header.setFillColor(black);
             stat_header.setStyle(Text::Bold);
@@ -312,16 +312,16 @@ int main()
                 if (rank == 1) row_color = Color(255, 215, 0);
                 else if (rank == 2) row_color = Color(192, 192, 192);
                 else if (rank == 3) row_color = Color(205, 127, 50);
-                string rank_str = (rank < 10 ? " " : "") + to_string(rank) + ".";
+                string rank_str = (rank < 10 ? "  " : "") + to_string(rank) + ".";
                 string stat_line = fix_str(rank_str, 6) + "  " +
-                    fix_str(player_name, 15) + "  " +
-                    fix_str(to_string(wins), 8) + "  " +
-                    fix_str(to_string(losses), 8) + "    " +
+                    fix_str(player_name, 15) + " " +
+                    fix_str(to_string(wins), 12) + " " +
+                    fix_str(to_string(losses), 12) + " " +
                     to_string(level);
-                Text player_stat(stat_line, font, 18);
+                Text player_stat(stat_line, font, 20);
                 player_stat.setPosition(100, y_pos);
                 player_stat.setFillColor(row_color);
-                if (rank <= 3) player_stat.setStyle(Text::Bold);
+                player_stat.setStyle(Text::Bold);
                 if (rank <= 3) {
                     RectangleShape row_bg(Vector2f(820, 25));
                     row_bg.setPosition(90, y_pos - 2);
