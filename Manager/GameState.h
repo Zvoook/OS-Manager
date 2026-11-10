@@ -3,28 +3,38 @@
 #include "Resource.h"
 #include <vector>
 #include <string>
+#include <random>
+#include <map>
+#include <array>
+#include <fstream>
+#include <algorithm>
 
 class GameState {
 private:
+    std::string player_name;
+    std::map<std::string, std::array<int, 3>> rating;
+
     vector<Process> processes;
     vector<Resource> resources;
     vector<vector<int>> allocation;
     vector<int> available;
-    int level;
-    int wins;
-    int losses;
+    int level, wins, losses;
 public:
-    GameState(int l = 1) : level(l), wins(0), losses(0) { init_level(level); }
+    GameState(vector<Process>& pr, vector<string>& res_names, int pr_cnt[], int res_cnt[],
+        vector<float>& coeff, int l = 1) : level(l), wins(0), losses(0)
+    {
+        init_level(pr, res_names, pr_cnt, res_cnt, coeff, level);
+    }
 
-    void init_level(int v);
+    void init_level(vector<Process>& pr, vector<string>& res_names, int pr_cnt[], int res_cnt[], vector<float>& coeff, int l);
     string action_result(int proc_id, int res_id, int k);
     bool deadlock_detect();
     bool is_lvl_passed() const;
     tuple<int, int, int> create_random_request();
-    void set_manual(const vector<Resource>& res, const vector<Process>& procs, int count);
+    void set_level(int i) { level = i; }
+    void release_finished();
+    bool make_request(int proc_id, int res_id, int k);
 
-    void next_lvl() { init_level(level + 1); }
-    void reset() { init_level(level); }
     void add_wins() { wins++; }
     void add_losses() { losses++; }
 
@@ -36,4 +46,16 @@ public:
 
     void save_to_file(const string& filename) const;
     bool load_from_file(const string& filename);
+
+    void set_player(const string& name);
+    void save_rating(const string& path) const;
+    void load_rating(const string& path);
+    vector<tuple<string, int, int, int>> get_all_stats() const;
+    void add_win();
+    void add_loss();
+    void update_max_level(int lvl);
+
+    int get_max_available_level() const;
+    bool has_player() const { return !player_name.empty(); }
+    string get_player_name() const { return player_name; }
 };
